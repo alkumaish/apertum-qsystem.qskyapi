@@ -12,7 +12,7 @@ USE `qsky` ;
 DROP TABLE IF EXISTS `qsky`.`company` ;
 
 CREATE  TABLE IF NOT EXISTS `qsky`.`company` (
-  `id` BIGINT NOT NULL ,
+  `id` BIGINT NOT NULL AUTO_INCREMENT ,
   `name` VARCHAR(500) NOT NULL DEFAULT '' ,
   PRIMARY KEY (`id`) )
 ENGINE = InnoDB
@@ -25,9 +25,10 @@ COMMENT = 'Список компаний. Ведется администрат�
 DROP TABLE IF EXISTS `qsky`.`branch` ;
 
 CREATE  TABLE IF NOT EXISTS `qsky`.`branch` (
-  `id` BIGINT NOT NULL ,
+  `id` BIGINT NOT NULL AUTO_INCREMENT ,
   `company_id` BIGINT NOT NULL ,
   `name` VARCHAR(500) NOT NULL DEFAULT '' ,
+  `active` TINYINT(1)  NOT NULL DEFAULT false ,
   PRIMARY KEY (`id`) ,
   INDEX `fk_branch_company` (`company_id` ASC) ,
   CONSTRAINT `fk_branch_company`
@@ -40,22 +41,17 @@ COMMENT = 'Филиалы. Заполняется администратором
 
 
 -- -----------------------------------------------------
--- Table `qsky`.`user`
+-- Table `qsky`.`employee`
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS `qsky`.`user` ;
+DROP TABLE IF EXISTS `qsky`.`employee` ;
 
-CREATE  TABLE IF NOT EXISTS `qsky`.`user` (
-  `id` BIGINT NOT NULL ,
+CREATE  TABLE IF NOT EXISTS `qsky`.`employee` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT ,
   `branch_id` BIGINT NOT NULL ,
-  `user_id` BIGINT NOT NULL ,
+  `employee_id` BIGINT NOT NULL ,
   `name` VARCHAR(500) NOT NULL DEFAULT '' ,
   PRIMARY KEY (`id`) ,
-  INDEX `fk_user_branch` (`branch_id` ASC) ,
-  CONSTRAINT `fk_user_branch`
-    FOREIGN KEY (`branch_id` )
-    REFERENCES `qsky`.`branch` (`id` )
-    ON DELETE CASCADE
-    ON UPDATE CASCADE)
+  UNIQUE INDEX `id_UNIQUE` (`id` ASC) )
 ENGINE = InnoDB
 COMMENT = 'Пользователи. Приходит из систем.';
 
@@ -66,18 +62,50 @@ COMMENT = 'Пользователи. Приходит из систем.';
 DROP TABLE IF EXISTS `qsky`.`service` ;
 
 CREATE  TABLE IF NOT EXISTS `qsky`.`service` (
-  `id` BIGINT NOT NULL ,
+  `id` BIGINT NOT NULL AUTO_INCREMENT ,
   `branch_id` BIGINT NOT NULL ,
   `service_id` BIGINT NOT NULL ,
   `name` VARCHAR(500) NOT NULL DEFAULT '' ,
+  PRIMARY KEY (`id`) )
+ENGINE = InnoDB
+COMMENT = 'Услуги и их названия';
+
+
+-- -----------------------------------------------------
+-- Table `qsky`.`step`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `qsky`.`step` ;
+
+CREATE  TABLE IF NOT EXISTS `qsky`.`step` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT ,
+  `branch_id` BIGINT NOT NULL COMMENT 'Филиал' ,
+  `customer_id` BIGINT NOT NULL COMMENT 'Клиент' ,
+  `service_id` BIGINT NULL COMMENT 'Оказываемая услуга клиенту' ,
+  `employee_id` BIGINT NULL COMMENT 'Этот сотрудник работал на этом шаге с клиентом' ,
+  `before_step_id` BIGINT NULL COMMENT 'Этот клиент впереди' ,
+  `after_step_id` BIGINT NULL COMMENT 'Этот клиент за ним' ,
+  `stand_time` DATETIME NULL COMMENT 'Клиент начал ожидать вызова' ,
+  `start_time` DATETIME NULL COMMENT 'Начали работать с клиентом' ,
+  `finish_time` DATETIME NULL COMMENT 'Закончили работать с клиентом' ,
+  `waiting` BIGINT NOT NULL DEFAULT 0 COMMENT 'Время ожидания клиента на шаге в милисекундах' ,
+  `working` BIGINT NOT NULL DEFAULT 0 COMMENT 'Время работы с клиентом в милисекундах' ,
+  `start_state` INT NULL COMMENT 'Шаг начался этим состоянием' ,
+  `finish_state` INT NULL COMMENT 'Шаг завершился этим состоянием' ,
   PRIMARY KEY (`id`) ,
-  INDEX `fk_service_branch` (`branch_id` ASC) ,
-  CONSTRAINT `fk_service_branch`
-    FOREIGN KEY (`branch_id` )
-    REFERENCES `qsky`.`branch` (`id` )
-    ON DELETE CASCADE
+  INDEX `fk_before` (`before_step_id` ASC) ,
+  INDEX `fk_after` (`after_step_id` ASC) ,
+  CONSTRAINT `fk_before`
+    FOREIGN KEY (`before_step_id` )
+    REFERENCES `qsky`.`step` (`id` )
+    ON DELETE SET NULL
+    ON UPDATE CASCADE,
+  CONSTRAINT `fk_after`
+    FOREIGN KEY (`after_step_id` )
+    REFERENCES `qsky`.`step` (`id` )
+    ON DELETE SET NULL
     ON UPDATE CASCADE)
-ENGINE = InnoDB;
+ENGINE = InnoDB
+COMMENT = 'Таблица отомарных обработак клиента';
 
 
 -- -----------------------------------------------------
@@ -86,28 +114,40 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `qsky`.`customer` ;
 
 CREATE  TABLE IF NOT EXISTS `qsky`.`customer` (
-  `id` BIGINT NOT NULL ,
-  `user_id` BIGINT NOT NULL ,
-  `service_id` BIGINT NOT NULL ,
-  `number` INT NOT NULL ,
-  `service_prefix` VARCHAR(45) NOT NULL ,
-  `stand` DATE NULL ,
-  `start` DATE NULL ,
-  `finish` DATE NULL ,
+  `id` BIGINT NOT NULL AUTO_INCREMENT ,
+  `branch_id` BIGINT NOT NULL ,
+  `service_id` BIGINT NULL ,
+  `number` INT NULL COMMENT 'Номер клиента' ,
+  `service_prefix` VARCHAR(45) NULL COMMENT 'Префикс услуги в номере клиента' ,
+  `visit_time` DATETIME NOT NULL COMMENT 'Время прихода клиента' ,
+  `customer_id` BIGINT NOT NULL ,
+  `before_customer_id` BIGINT NULL ,
+  `after_customer_id` BIGINT NULL ,
+  `first_step_id` BIGINT NULL COMMENT 'Первый шаг в обработке' ,
+  `waiting` BIGINT NOT NULL DEFAULT 0 COMMENT 'Среднее время ожидания на всех шагах в милисекундах' ,
+  `working` BIGINT NOT NULL DEFAULT 0 COMMENT 'Среднее время работы за все шаги в милисекундах' ,
+  `present_state` INT NULL COMMENT 'Текущее состояние: набор констант' ,
   PRIMARY KEY (`id`) ,
-  INDEX `fk_customer_user` (`user_id` ASC) ,
-  INDEX `fk_customer_service` (`service_id` ASC) ,
-  CONSTRAINT `fk_customer_user`
-    FOREIGN KEY (`user_id` )
-    REFERENCES `qsky`.`user` (`id` )
-    ON DELETE CASCADE
+  INDEX `fk_before` (`before_customer_id` ASC) ,
+  INDEX `fk_after` (`after_customer_id` ASC) ,
+  INDEX `fk_customer_step` (`first_step_id` ASC) ,
+  CONSTRAINT `fk_before`
+    FOREIGN KEY (`before_customer_id` )
+    REFERENCES `qsky`.`customer` (`id` )
+    ON DELETE SET NULL
     ON UPDATE CASCADE,
-  CONSTRAINT `fk_customer_service`
-    FOREIGN KEY (`service_id` )
-    REFERENCES `qsky`.`service` (`id` )
-    ON DELETE CASCADE
+  CONSTRAINT `fk_after`
+    FOREIGN KEY (`after_customer_id` )
+    REFERENCES `qsky`.`customer` (`id` )
+    ON DELETE SET NULL
+    ON UPDATE CASCADE,
+  CONSTRAINT `fk_customer_step`
+    FOREIGN KEY (`first_step_id` )
+    REFERENCES `qsky`.`step` (`id` )
+    ON DELETE SET NULL
     ON UPDATE CASCADE)
-ENGINE = InnoDB;
+ENGINE = InnoDB
+COMMENT = 'Все клиенты';
 
 
 
