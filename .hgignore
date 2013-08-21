@@ -2,3 +2,22 @@ relre:build/.+
 relre:dist/.+
 relre:lib/Glass.+
 relre:lib/javaee.+
+syntax: glob
+lib/ZK6.5.2/zweb.jar
+lib/ZK6.5.2/zuljsp.jar
+lib/ZK6.5.2/zul.jar
+lib/ZK6.5.2/zml.jar
+lib/ZK6.5.2/zkplus.jar
+lib/ZK6.5.2/zkmax.jar
+lib/ZK6.5.2/zkex.jar
+lib/ZK6.5.2/zkbind.jar
+lib/ZK6.5.2/zk.jar
+lib/ZK6.5.2/zhtml.jar
+lib/ZK6.5.2/zel.jar
+lib/ZK6.5.2/zcommons-el.jar
+lib/ZK6.5.2/zcommon.jar
+lib/ZK6.5.2/timeplotz.jar
+lib/ZK6.5.2/timelinez.jar
+lib/ZK6.5.2/silvertail.jar
+lib/ZK*
+lib/EclipseLink*

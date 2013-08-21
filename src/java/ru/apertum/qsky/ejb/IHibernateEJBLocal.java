@@ -26,7 +26,7 @@ import org.hibernate.Session;
  */
 @Local
 public interface IHibernateEJBLocal {
-
+    
     /**
      * Фабрика сессий.
      * @return

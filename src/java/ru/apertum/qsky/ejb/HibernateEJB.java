@@ -20,8 +20,10 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.ejb.Singleton;
 import org.hibernate.SessionFactory;
-import org.hibernate.cfg.AnnotationConfiguration;
 import org.hibernate.Session;
+import org.hibernate.cfg.Configuration;
+import org.hibernate.service.ServiceRegistry;
+import org.hibernate.service.ServiceRegistryBuilder;
 
 /**
  *
@@ -36,39 +38,49 @@ public class HibernateEJB implements IHibernateEJBLocal {
 
     @PostConstruct
     private void buildHibernateSessionFactory() {
-        try {
-            // Create the SessionFactory from standard (hibernate.cfg.xml)
-            // config file.
-            sessionFactory = new AnnotationConfiguration().configure().buildSessionFactory();
-        } catch (Throwable ex) {
-            // Log the exception.
-            System.err.println("Initial SessionFactory creation failed." + ex);
-            throw new ExceptionInInitializerError(ex);
+      //  getFactory();
+    }
+
+    protected SessionFactory getFactory() {
+        if (sessionFactory == null) {
+            try {
+                // Create the SessionFactory from standard (hibernate.cfg.xml)
+                // config file.
+                final Configuration configuration = new Configuration();
+                configuration.configure();
+                final ServiceRegistry serviceRegistry = new ServiceRegistryBuilder().applySettings(configuration.getProperties()).buildServiceRegistry();
+                sessionFactory = configuration.buildSessionFactory(serviceRegistry);
+            } catch (Throwable ex) {
+                // Log the exception.
+                System.err.println("Initial SessionFactory creation failed." + ex);
+                throw new ExceptionInInitializerError(ex);
+            }
         }
+        return sessionFactory;
     }
 
     @PreDestroy
     private void closeHibernateSessionFactory() {
-        sessionFactory.close();
+        getFactory().close();
     }
 
     @Override
     public SessionFactory getSessionFactory() {
-        return sessionFactory;
+        return getFactory();
     }
 
     @Override
     public Session openSession() {
-        return sessionFactory.openSession();
+        return getFactory().openSession();
     }
 
     @Override
     public Session getCurrentSession() {
-        return sessionFactory.getCurrentSession();
+        return getFactory().getCurrentSession();
     }
 
     @Override
     public Session cs() {
-        return sessionFactory.getCurrentSession();
+        return getFactory().getCurrentSession();
     }
 }

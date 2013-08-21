@@ -16,7 +16,7 @@ CREATE  TABLE IF NOT EXISTS `qsky`.`company` (
   `name` VARCHAR(500) NOT NULL DEFAULT '' ,
   PRIMARY KEY (`id`) )
 ENGINE = InnoDB
-COMMENT = 'Список компаний. Ведется администратором';
+COMMENT = 'Список компаний. Ведется администратором' ;
 
 
 -- -----------------------------------------------------
@@ -30,14 +30,15 @@ CREATE  TABLE IF NOT EXISTS `qsky`.`branch` (
   `name` VARCHAR(500) NOT NULL DEFAULT '' ,
   `active` TINYINT(1)  NOT NULL DEFAULT false ,
   PRIMARY KEY (`id`) ,
-  INDEX `fk_branch_company` (`company_id` ASC) ,
   CONSTRAINT `fk_branch_company`
     FOREIGN KEY (`company_id` )
     REFERENCES `qsky`.`company` (`id` )
     ON DELETE CASCADE
     ON UPDATE CASCADE)
-ENGINE = InnoDB
-COMMENT = 'Филиалы. Заполняется администратором.';
+ENGINE = InnoDB, 
+COMMENT = 'Филиалы. Заполняется администратором.' ;
+
+CREATE INDEX `idx_branch_company` ON `qsky`.`branch` (`company_id` ASC) ;
 
 
 -- -----------------------------------------------------
@@ -50,10 +51,11 @@ CREATE  TABLE IF NOT EXISTS `qsky`.`employee` (
   `branch_id` BIGINT NOT NULL ,
   `employee_id` BIGINT NOT NULL ,
   `name` VARCHAR(500) NOT NULL DEFAULT '' ,
-  PRIMARY KEY (`id`) ,
-  UNIQUE INDEX `id_UNIQUE` (`id` ASC) )
-ENGINE = InnoDB
-COMMENT = 'Пользователи. Приходит из систем.';
+  PRIMARY KEY (`id`) )
+ENGINE = InnoDB, 
+COMMENT = 'Пользователи. Приходит из систем.' ;
+
+CREATE UNIQUE INDEX `id_UNIQUE` ON `qsky`.`employee` (`id` ASC) ;
 
 
 -- -----------------------------------------------------
@@ -67,8 +69,8 @@ CREATE  TABLE IF NOT EXISTS `qsky`.`service` (
   `service_id` BIGINT NOT NULL ,
   `name` VARCHAR(500) NOT NULL DEFAULT '' ,
   PRIMARY KEY (`id`) )
-ENGINE = InnoDB
-COMMENT = 'Услуги и их названия';
+ENGINE = InnoDB, 
+COMMENT = 'Услуги и их названия' ;
 
 
 -- -----------------------------------------------------
@@ -92,20 +94,22 @@ CREATE  TABLE IF NOT EXISTS `qsky`.`step` (
   `start_state` INT NULL COMMENT 'Шаг начался этим состоянием' ,
   `finish_state` INT NULL COMMENT 'Шаг завершился этим состоянием' ,
   PRIMARY KEY (`id`) ,
-  INDEX `fk_before` (`before_step_id` ASC) ,
-  INDEX `fk_after` (`after_step_id` ASC) ,
-  CONSTRAINT `fk_before`
+  CONSTRAINT `fk_step_before_step_id`
     FOREIGN KEY (`before_step_id` )
     REFERENCES `qsky`.`step` (`id` )
     ON DELETE SET NULL
     ON UPDATE CASCADE,
-  CONSTRAINT `fk_after`
+  CONSTRAINT `fk_step_after_step_id`
     FOREIGN KEY (`after_step_id` )
     REFERENCES `qsky`.`step` (`id` )
     ON DELETE SET NULL
     ON UPDATE CASCADE)
-ENGINE = InnoDB
-COMMENT = 'Таблица отомарных обработак клиента';
+ENGINE = InnoDB, 
+COMMENT = 'Таблица отомарных обработак клиента' ;
+
+CREATE INDEX `idx_step_before_step_id` ON `qsky`.`step` (`before_step_id` ASC) ;
+
+CREATE INDEX `idx_step_after_step_id` ON `qsky`.`step` (`after_step_id` ASC) ;
 
 
 -- -----------------------------------------------------
@@ -128,26 +132,97 @@ CREATE  TABLE IF NOT EXISTS `qsky`.`customer` (
   `working` BIGINT NOT NULL DEFAULT 0 COMMENT 'Среднее время работы за все шаги в милисекундах' ,
   `present_state` INT NULL COMMENT 'Текущее состояние: набор констант' ,
   PRIMARY KEY (`id`) ,
-  INDEX `fk_before` (`before_customer_id` ASC) ,
-  INDEX `fk_after` (`after_customer_id` ASC) ,
-  INDEX `fk_customer_step` (`first_step_id` ASC) ,
-  CONSTRAINT `fk_before`
+  CONSTRAINT `fk_customer_before_customer_id`
     FOREIGN KEY (`before_customer_id` )
     REFERENCES `qsky`.`customer` (`id` )
     ON DELETE SET NULL
     ON UPDATE CASCADE,
-  CONSTRAINT `fk_after`
+  CONSTRAINT `fk_customer_after_customer_id`
     FOREIGN KEY (`after_customer_id` )
     REFERENCES `qsky`.`customer` (`id` )
     ON DELETE SET NULL
     ON UPDATE CASCADE,
-  CONSTRAINT `fk_customer_step`
+  CONSTRAINT `fk_customer_first_step_id`
     FOREIGN KEY (`first_step_id` )
     REFERENCES `qsky`.`step` (`id` )
     ON DELETE SET NULL
     ON UPDATE CASCADE)
-ENGINE = InnoDB
-COMMENT = 'Все клиенты';
+ENGINE = InnoDB, 
+COMMENT = 'Все клиенты' ;
+
+CREATE INDEX `idx_customer_before_customer_id` ON `qsky`.`customer` (`before_customer_id` ASC) ;
+
+CREATE INDEX `idx_customer_after_customer_id` ON `qsky`.`customer` (`after_customer_id` ASC) ;
+
+CREATE INDEX `idx_customer_first_step_id` ON `qsky`.`customer` (`first_step_id` ASC) ;
+
+
+-- -----------------------------------------------------
+-- Table `qsky`.`pager_data`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `qsky`.`pager_data` ;
+
+CREATE  TABLE IF NOT EXISTS `qsky`.`pager_data` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT ,
+  `data_type` INT NOT NULL DEFAULT 0 COMMENT 'Тип сообщения. 0-просто инфа, 1-выбор из списка, 2-ввод текста' ,
+  `text_data` VARCHAR(1450) NOT NULL DEFAULT '' COMMENT 'html текст' ,
+  `quiz_caption` VARCHAR(145) NULL COMMENT 'Это не null если есть опрос. Если не null и нет вариантов ответа, то ввод текста' ,
+  `start_date` DATETIME NOT NULL COMMENT 'время начала публикации' ,
+  `active` TINYINT(1)  NOT NULL DEFAULT true COMMENT 'показываем или в архиве' ,
+  PRIMARY KEY (`id`) )
+ENGINE = InnoDB, 
+COMMENT = 'Новости и опросы для пейджера' ;
+
+
+-- -----------------------------------------------------
+-- Table `qsky`.`pager_quiz_items`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `qsky`.`pager_quiz_items` ;
+
+CREATE  TABLE IF NOT EXISTS `qsky`.`pager_quiz_items` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT ,
+  `pager_data_id` BIGINT NOT NULL ,
+  `item_text` VARCHAR(145) NOT NULL DEFAULT '' ,
+  PRIMARY KEY (`id`) ,
+  CONSTRAINT `fk_quiz_pager_data`
+    FOREIGN KEY (`pager_data_id` )
+    REFERENCES `qsky`.`pager_data` (`id` )
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
+ENGINE = InnoDB, 
+COMMENT = 'Тексты позиций опросов в пейджере' ;
+
+
+-- -----------------------------------------------------
+-- Table `qsky`.`pager_results`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `qsky`.`pager_results` ;
+
+CREATE  TABLE IF NOT EXISTS `qsky`.`pager_results` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT ,
+  `ip` VARCHAR(45) NOT NULL COMMENT 'с какого адреса заходили' ,
+  `event_time` DATETIME NOT NULL COMMENT 'время когда заходили' ,
+  `pager_data_id` BIGINT NULL ,
+  `quiz_id` BIGINT NULL ,
+  `input_data` VARCHAR(545) NULL COMMENT 'Если опрос предполагал ввести текст самостоятельно' ,
+  `qsys_version` VARCHAR(45) NULL COMMENT 'версия проги' ,
+  PRIMARY KEY (`id`) ,
+  CONSTRAINT `fk_pager_results_pager_data`
+    FOREIGN KEY (`pager_data_id` )
+    REFERENCES `qsky`.`pager_data` (`id` )
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT `fk_pager_results_quiz`
+    FOREIGN KEY (`quiz_id` )
+    REFERENCES `qsky`.`pager_quiz_items` (`id` )
+    ON DELETE SET NULL
+    ON UPDATE SET NULL)
+ENGINE = InnoDB, 
+COMMENT = 'Данные по обращениям из пейджера и результаты опросов' ;
+
+CREATE INDEX `idx_pager_results_pager_data` ON `qsky`.`pager_results` (`pager_data_id` ASC) ;
+
+CREATE INDEX `idx_pager_results_quiz` ON `qsky`.`pager_results` (`quiz_id` ASC) ;
 
 
 

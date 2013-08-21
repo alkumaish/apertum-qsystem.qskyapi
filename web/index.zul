@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?init class="org.zkoss.zk.ui.util.Composition" arg0="/mainShell.zul"?>
+<zk xmlns="http://www.zkoss.org/2005/zul">
+    <style src="/resources/css/qsys.css"/>
+        
+    <vbox xmlns:c="client" width="100%" height="100%" style="border:0px solid black;" align="center" pack="top" self="@{define(main_window_data)}">
+        
+        <hbox width="650px">
+            <label id="lbl"  sclass="labelstyle" value="Для выгрузки статистики войдите в систему."/>
+        </hbox>
+        
+        <div apply="org.zkoss.bind.BindComposer" viewModel="@id('vm') @init('ru.apertum.qsky.api.web.UserLoginForm')" validationMessages="@id('vmsgs')"
+             form="@id('fx') @load(vm.user) @save(vm.user, before='submit') @validator('ru.apertum.qsky.api.web.UserLoginValidator')">
+            <grid width="70%">
+                <columns>
+                    <column label="Данные клиента" width="30%" />
+                    <column label="Ввести" width="70%"/>
+                </columns>
+                <rows>
+                    <row align="left">
+                        <label value="Пользователь" width="150px" />
+                        <hlayout>
+                            <textbox value="@bind(fx.name)" c:onFocus="this.select()" width="200px" tabindex="1" />
+                            <label class="error" value="@load(vmsgs['name'])" />
+                        </hlayout>
+                        
+                    </row>
+                    
+                    <row align="left">
+                        <label value="Пароль" width="150px" />
+                        <hlayout>
+                            <textbox id="pwd" type="password" c:onFocus="this.select()" value="@bind(fx.password)" width="200px" tabindex="2"/>
+                            <label class="error" value="@load(vmsgs['password'])" />
+                        </hlayout>
+                        
+                    </row>
+                    
+                    <row>
+                        <cell colspan="3" style="text-align:center">
+                            <vlayout>
+                                <label visible="@load(empty vmsgs)" value="@load(empty vmsgs ? '' : 'Доступ закрыт!', before='submit')" />
+                                <button label="Войти" width="100px" height="30px" onClick="@command('submit')" />
+                            </vlayout>
+                        </cell>
+                    </row>
+                    
+                </rows>
+            </grid>
+        </div>
+        
+        
+    </vbox>
+        
+    
+</zk>
