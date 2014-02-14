@@ -5,7 +5,8 @@
 package ru.apertum.qsky.servlets;
 
 import java.io.IOException;
-import java.util.Date;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.util.List;
 import javax.ejb.EJB;
 import javax.servlet.ServletException;
@@ -16,6 +17,7 @@ import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.net.BCodec;
 import org.hibernate.Query;
 import org.hibernate.Session;
+import ru.apertum.qsky.common.Uses;
 import ru.apertum.qsky.controller.PagerAlreadyDone;
 import ru.apertum.qsky.ejb.IHibernateEJBLocal;
 import ru.apertum.qsky.model.pager.PagerData;
@@ -32,9 +34,7 @@ public class SetPagerData extends HttpServlet {
     private IHibernateEJBLocal hib;
 
     /**
-     * Processes requests for both HTTP
-     * <code>GET</code> and
-     * <code>POST</code> methods.
+     * Processes requests for both HTTP <code>GET</code> and <code>POST</code> methods.
      *
      * @param request servlet request
      * @param response servlet response
@@ -45,11 +45,11 @@ public class SetPagerData extends HttpServlet {
         Session ses = hib.cs();
         ses.beginTransaction();
 
-        final PagerResults pagerResults = new PagerResults(request.getRemoteAddr(), new Date(), request.getParameter("qsysver"));
+        final PagerResults pagerResults = new PagerResults(request.getRemoteAddr(), Uses.getNow(), request.getParameter("qsysver"));
         PagerAlreadyDone.getInstance().add(request.getRemoteAddr(), Long.parseLong(request.getParameter("dataid")));
         try {
-            pagerResults.setInputData(new BCodec().decode(request.getParameter("inputdata")));
-        } catch (DecoderException ex) {
+            pagerResults.setInputData(URLDecoder.decode(new BCodec().decode(request.getParameter("inputdata")), "utf-8"));
+        } catch (DecoderException | UnsupportedEncodingException ex) {
         }
         final Query query = ses.getNamedQuery("PagerData.findById");
         query.setLong("id", Long.parseLong(request.getParameter("dataid")));
@@ -76,8 +76,7 @@ public class SetPagerData extends HttpServlet {
 
     // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">
     /**
-     * Handles the HTTP
-     * <code>GET</code> method.
+     * Handles the HTTP <code>GET</code> method.
      *
      * @param request servlet request
      * @param response servlet response
@@ -91,8 +90,7 @@ public class SetPagerData extends HttpServlet {
     }
 
     /**
-     * Handles the HTTP
-     * <code>POST</code> method.
+     * Handles the HTTP <code>POST</code> method.
      *
      * @param request servlet request
      * @param response servlet response

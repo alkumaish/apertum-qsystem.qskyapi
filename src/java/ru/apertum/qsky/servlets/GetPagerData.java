@@ -20,6 +20,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.hibernate.Query;
 import org.hibernate.Session;
 import ru.apertum.qsky.common.GsonPool;
+import ru.apertum.qsky.common.Uses;
 import ru.apertum.qsky.controller.PagerAlreadyDone;
 import ru.apertum.qsky.ejb.IHibernateEJBLocal;
 import ru.apertum.qsky.model.pager.PagerData;
@@ -35,9 +36,7 @@ public class GetPagerData extends HttpServlet {
     private IHibernateEJBLocal hib;
 
     /**
-     * Processes requests for both HTTP
-     * <code>GET</code> and
-     * <code>POST</code> methods.
+     * Processes requests for both HTTP <code>GET</code> and <code>POST</code> methods.
      *
      * @param request servlet request
      * @param response servlet response
@@ -51,7 +50,7 @@ public class GetPagerData extends HttpServlet {
 
             final Gson g = GsonPool.getInstance().borrowGson();
             try {
-                Session ses = hib.cs();
+                final Session ses = hib.cs();
                 ses.beginTransaction();
                 final Query query = ses.getNamedQuery("PagerData.findByActive");
                 query.setBoolean("active", true);
@@ -59,16 +58,24 @@ public class GetPagerData extends HttpServlet {
                 final ArrayList<PagerData> forDell = new ArrayList<>();
                 for (Object o : data) {
                     final PagerData p = (PagerData) o;
-                    if (p.getDataType()!=0 && PagerAlreadyDone.getInstance().check(request.getRemoteAddr(), p.getId())) {
+                    if (p.getDataType() != 0 && PagerAlreadyDone.getInstance().check(request.getRemoteAddr(), p.getId())) {
                         forDell.add(p);
                     }
                 }
                 data.removeAll(forDell);
                 final String s = g.toJson(new Answer(data, System.getProperty("QSKY_QSYS_VER")));
                 out.print(s);
-                final String black = System.getProperty("QSKY_IGNOR_ADDR");
-                if (black == null || !black.contains(request.getRemoteAddr())) {
-                    final PagerResults pagerResults = new PagerResults(request.getRemoteAddr(), new Date(), request.getParameter("qsysver"));
+                final String black = System.getProperty("QSKY_IGNOR_ADDR", "");
+                final String adr = request.getRemoteAddr();
+                boolean f = true;
+                for (String bb : black.split(";")) {
+                    f = !adr.startsWith(bb);
+                    if (!f) {
+                        break;
+                    }
+                }
+                if (f) {
+                    final PagerResults pagerResults = new PagerResults(request.getRemoteAddr(), Uses.getNow(), request.getParameter("qsysver"));
                     ses.save(pagerResults);
                     hib.cs().getTransaction().commit();
                 } else {
@@ -82,8 +89,7 @@ public class GetPagerData extends HttpServlet {
 
     // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">
     /**
-     * Handles the HTTP
-     * <code>GET</code> method.
+     * Handles the HTTP <code>GET</code> method.
      *
      * @param request servlet request
      * @param response servlet response
@@ -97,8 +103,7 @@ public class GetPagerData extends HttpServlet {
     }
 
     /**
-     * Handles the HTTP
-     * <code>POST</code> method.
+     * Handles the HTTP <code>POST</code> method.
      *
      * @param request servlet request
      * @param response servlet response

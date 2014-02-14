@@ -21,9 +21,9 @@ import javax.annotation.PreDestroy;
 import javax.ejb.Singleton;
 import org.hibernate.SessionFactory;
 import org.hibernate.Session;
+import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 import org.hibernate.cfg.Configuration;
 import org.hibernate.service.ServiceRegistry;
-import org.hibernate.service.ServiceRegistryBuilder;
 
 /**
  *
@@ -48,7 +48,7 @@ public class HibernateEJB implements IHibernateEJBLocal {
                 // config file.
                 final Configuration configuration = new Configuration();
                 configuration.configure();
-                final ServiceRegistry serviceRegistry = new ServiceRegistryBuilder().applySettings(configuration.getProperties()).buildServiceRegistry();
+                final ServiceRegistry serviceRegistry = new StandardServiceRegistryBuilder().applySettings(configuration.getProperties()).build();
                 sessionFactory = configuration.buildSessionFactory(serviceRegistry);
             } catch (Throwable ex) {
                 // Log the exception.
