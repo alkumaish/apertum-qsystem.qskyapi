@@ -42,15 +42,18 @@ public class SetPagerData extends HttpServlet {
      * @throws IOException if an I/O error occurs
      */
     protected void processRequest(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        Session ses = hib.cs();
-        ses.beginTransaction();
 
         final PagerResults pagerResults = new PagerResults(request.getRemoteAddr(), Uses.getNow(), request.getParameter("qsysver"));
         PagerAlreadyDone.getInstance().add(request.getRemoteAddr(), Long.parseLong(request.getParameter("dataid")));
         try {
-            pagerResults.setInputData(URLDecoder.decode(new BCodec().decode(request.getParameter("inputdata")), "utf-8"));
+            if (request.getParameter("inputdata") != null) {
+                pagerResults.setInputData(URLDecoder.decode(new BCodec().decode(request.getParameter("inputdata")), "utf-8"));
+            }
         } catch (DecoderException | UnsupportedEncodingException ex) {
         }
+
+        Session ses = hib.cs();
+        ses.beginTransaction();
         final Query query = ses.getNamedQuery("PagerData.findById");
         query.setLong("id", Long.parseLong(request.getParameter("dataid")));
         List data = query.list();
