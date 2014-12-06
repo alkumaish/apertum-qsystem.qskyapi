@@ -49,9 +49,9 @@ public interface ICustomerEvents {
 
     public void removeCustomer(Long branchId, Long serviceId, Long customerId);
 
-    Integer ping(String version);
+    public Integer ping(String version);
 
-    void sendServiceName(Long branchId, Long serviceId, String name);
+    public void sendServiceName(Long branchId, Long serviceId, String name);
 
-    void sendUserName(Long branchId, Long employeeId, String name);
+    public void sendUserName(Long branchId, Long employeeId, String name);
 }

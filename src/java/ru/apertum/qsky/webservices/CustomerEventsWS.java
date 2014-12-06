@@ -1,5 +1,6 @@
 /*
- * To change this template, choose Tools | Templates
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
 package ru.apertum.qsky.webservices;
@@ -13,14 +14,14 @@ import ru.apertum.qsky.api.ICustomerEvents;
 
 /**
  *
- * @author egorov
+ * @author Evgeniy Egorov
  */
 // QSkyAPI  listening at address at http://<server_address>:8080/<serviceName>/<name>
 @WebService(name = "qskyapi/CustomerEventsWS", serviceName = "customer_events", portName = "qsky")
 public class CustomerEventsWS {
-
-    @EJB(mappedName = "ejb/qskyapi/customer_events")
-    private ICustomerEvents ejbRef;
+    @EJB
+    private ICustomerEvents ejbRef;// Add business logic below. (Right-click in editor and choose
+    // "Insert Code > Add Web Service Operation")
 
     @WebMethod(operationName = "standInService")
     @Oneway
@@ -101,8 +102,8 @@ public class CustomerEventsWS {
 
     @WebMethod(operationName = "sendServiceName")
     @Oneway
-    public void sendServiceName(@WebParam(name = "branchId") Long branchId, @WebParam(name = "serviceId") Long serviceId, @WebParam(name = "String") String String) {
-        ejbRef.sendServiceName(branchId, serviceId, String);
+    public void sendServiceName(@WebParam(name = "branchId") Long branchId, @WebParam(name = "serviceId") Long serviceId, @WebParam(name = "name") String name) {
+        ejbRef.sendServiceName(branchId, serviceId, name);
     }
 
     @WebMethod(operationName = "sendUserName")

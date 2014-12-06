@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<zk xmlns="http://www.zkoss.org/2005/zul">
+    <?taglib uri="http://www.zkoss.org/dsp/web/core" prefix="c"?>
+    
+    <window id="dashboardWindow" width="100%"  height="100%"   apply="org.zkoss.bind.BindComposer" viewModel="@id('fmodel') @init('ru.apertum.qsky.web.Dashboard')">
+        
+        <borderlayout>
+            
+            <north size="80px" style="background-image:url(${c:encodeURL('/resources/img/small_vert_grad.png')}) ">
+                <vbox height="100%" pack="center">
+                    <hbox width="100%" style="padding: 15px;" pack="center" align="center">
+                        <image id="" src="/resources/img/label48.png" width=""  height=""/>
+                        <label id="" style="padding: 30px; font-family: 'Times New Roman', Times, serif; font-style: italic; font-size: 300%;" value="QSystem"/>
+                    
+                    </hbox>
+                </vbox>
+            </north>
+        
+            <west title="Иерархия филиалов" size="450px" flex="true" minsize="300" maxsize="800" splittable="true" collapsible="true">
+                <panel id="treeBranchWindow">
+                    <panelchildren>
+                        <style>
+                            .h-inline-block {
+                            display: inline-block;
+                            _display: inline;
+                            }
+                        </style>
+                        <borderlayout>
+			
+                            <center border="none" flex="true">
+                                <tree id="tree" width="100%" height="100%" >
+                                    <treecols>
+                                        <treecol label="Филиал"/>
+                                        <treecol label="Описание" width="80px"/>
+                            
+                                    </treecols>
+                                </tree>
+                            </center>
+                            <south size="50px" border="none" flex="false">
+                                <hbox spacing="10px" style="border: 10px solid white" >
+                                    <button label="Добавить филиал" onClick="@command('addBranch')">
+                                    </button>
+                                    <button label="Удалить филиал"  onClick="@command('removeBranch')">
+                                    
+                                    </button>
+                                </hbox>
+                            </south>
+                        </borderlayout>
+                    </panelchildren>
+                </panel>
+            </west>
+        
+            <center title="Статистика"  flex="true">
+                <tabbox  id="tbs" height="100%" width="100%" style="padding: 10px 10px 100px 10px;">
+                    <tabs id="tabs">
+                        <tab id="rightNowTab" label="Текущя обстановка" />
+                        <tab id="statisticsTab" label="Статистика" />
+                    </tabs>
+                    <tabpanels>
+                        <tabpanel style="overflow:auto">
+                            
+                            <window apply="ru.apertum.qsky.web.GaugeClockComposer">
+                                <label id="chart"  style="padding: 30px; font-family: 'Times New Roman', Times, serif; font-style: italic; font-size: 300%;" value="QSystem"/>
+                                
+                                <timer id="timer" delay="1000" running="true" repeats="true" />
+                            </window>
+                            
+                            <hlayout spacing="10px" apply="org.zkoss.bind.BindComposer" viewModel="@id('vm') @init('ru.apertum.qsky.web.DialChartVM')">
+                                <chart id="chartC" width="250" height="250" paneColor="#ffffff" type="dial" model="@bind(vm.celsiusModel)"/>
+                                <chart id="chartF" width="250" height="250" paneColor="#ffffff" type="dial" model="@bind(vm.fahrenheitModel)"/>
+                            </hlayout>
+                            
+                            <vlayout  style="padding: 10px 10px 100px 10px;" apply="org.zkoss.bind.BindComposer" viewModel="@id('vm') @init('ru.apertum.qsky.web.PieChartVM')">
+                                <chart id="mychart" title="10 самых загруженных услуг на данный момент" width="550" height="400" paneColor="#ffffff" fgAlpha="192"
+                                       type="pie" threeD="@bind(vm.threeD)" model="@bind(vm.model)" engine="@bind(vm.engine)"
+                                       onClick="@command('showMessage',msg=event.areaComponent.tooltiptext)"/>
+                                <hlayout  visible="@bind(not empty vm.message)">
+                                    Информация по даннай услуге :<label value="@bind(vm.message)"/>
+                                </hlayout>
+                            </vlayout>    
+                            
+                        </tabpanel>
+                        <tabpanel style="overflow:auto">
+                            
+                            <div style="padding: 10px 10px 100px 10px;" apply="org.zkoss.bind.BindComposer"
+                                 viewModel="@id('vm') @init('ru.apertum.qsky.model.FoodGroupViewModel')">
+                                
+                                <panel id="wiki"  title="Параметры" border="normal" >
+                                    <panelchildren style="padding: 10px 10px 10px 10px;">
+                                        <div>
+                                            От 
+                                            <datebox id="db1" constraint="no empty, no future: now or never" cols="15" format="long" 
+                                                     onChange="GregorianCalendar gc = new GregorianCalendar(); gc.setTime(self.value); gc.set(GregorianCalendar.DAY_OF_YEAR, gc.get(GregorianCalendar.DAY_OF_YEAR) -1); db2.setConstraint(new SimpleDateConstraint( 0, gc.getTime(), new Date(), null));" 
+                                                     onCreate="self.value = new Date()"/>
+                                            до 
+                                            <datebox id="db2" constraint="" cols="15" format="long" onCreate="self.value = new Date()"/>
+                                        </div>
+                                        <radiogroup id="user_serv" orient="vertical" onCheck="">
+                                            <radio id="user_serv1" selected="true" label="В разрезе слуг" radiogroup="user_serv"/>
+                                            <radio id="user_serv2" label="В разрезе операторов" radiogroup="user_serv"/>
+                                        </radiogroup>
+                                        <div style="border: 10px solid white">
+                                            <button label="Показать" onClick="">
+                                            </button>
+                                        </div>
+                                    </panelchildren>
+                                </panel>
+                                
+                                <grid id="demoGrid" height="100%"  model="@load(vm.foodModel)">
+                                    <columns menupopup="auto">
+                                        <column sort="auto(Name)" label="Name" width="150px"/>
+                                        <column sort="auto(TopNutrients)" label="Top Nutrients" hflex="1" /> 
+                                        <column sort="auto(DailyPercent)" label="% of Daily" hflex="1" align="center"/>
+                                        <column sort="auto(Calories)" label="Calories" hflex="1" align="center"  />
+                                        <column sort="auto(Quantity)" label="Quantity" />
+                                    </columns>
+                                    <!-- template for group -->
+                                    <template name="model:group">
+                                        <group label="@load(each)" />
+                                    </template>
+         
+                                    <!-- template for each element in model -->
+                                    <template name="model">
+                                        <row>
+                                            <label value="@load(each.name)" />
+                                            <label value="@load(each.topNutrients)" />
+                                            <label value="@load(each.dailyPercent)" />
+                                            <label value="@load(each.calories)" />
+                                            <label value="@load(each.quantity)" />
+                                        </row>
+                                    </template>
+             
+                                    <!-- template for footer -->
+                                    <template name="model:groupfoot">
+                                        <groupfoot>
+                                            <cell colspan="5" style="text-align: right; padding-right: 15px">
+                                                <label value="@load(each)" style="font-weight:bold;" />
+                                            </cell>
+                                        </groupfoot>
+                                    </template>
+                                </grid>
+                            </div>
+                            
+                            
+                        </tabpanel>
+                        
+                    </tabpanels>
+                </tabbox>
+				
+            </center>
+            <east title="Информация" size="125px"  flex="true" splittable="true" collapsible="true">
+				
+            </east>
+            <south  size="40px" style="background-image:url(${c:encodeURL('/resources/img/small_vert_grad2.png')}) ">
+                <toolbar mold="panel" align="center">
+                    <toolbarbutton label="Форум" href="http://qsystem.info/index.php/forum/index" target="_blank" />
+                    <toolbarbutton label="Справка" onClick='alert("Справка пока не готова")'/>
+                    <toolbarbutton label="О программе" onClick='alert("QSystem 2.0(pre)a; QUser 2.0a")'/>
+                    <toolbarbutton label="{Apertum}Projects" href="http://apertum.ru" target="_blank" />
+                    <toolbarbutton label="QSystem" href="http://qsystem.info" target="_blank" />
+                    <toolbarbutton label="Письмо в поддержку"  href="mailto:info@apertum.ru" target="_blank" />
+                    <separator orient="vertical" bar="true" />
+                    {Apertum}Projects Powered by ZK ${desktop.webApp.version} 
+                </toolbar>
+            
+            </south>
+        </borderlayout>
+        <div id="forInvisibleIncludes" height="0px" width="0px">
+            <include id="incBranchPropsDialog" src="/include/branchPropsDialog.zul"/>
+        </div>
+        
+    </window>
+    
+    
+</zk>

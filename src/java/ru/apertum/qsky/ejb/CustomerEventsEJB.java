@@ -24,6 +24,7 @@ import javax.ejb.Singleton;
 import org.hibernate.criterion.Property;
 import ru.apertum.qsky.api.ICustomerEvents;
 import ru.apertum.qsky.common.ServerProps;
+import ru.apertum.qsky.model.Branch;
 import ru.apertum.qsky.model.Customer;
 import ru.apertum.qsky.model.Employee;
 import ru.apertum.qsky.model.Service;
@@ -450,6 +451,12 @@ public class CustomerEventsEJB implements ICustomerEvents {
         final List<Service> list = hib.cs().createCriteria(Service.class).add(Property.forName("branchId").eq(branchId)).add(Property.forName("serviceId").eq(serviceId)).list();
         return list.isEmpty() ? null : list.get(0);
     }
+    
+    private Branch getBranch(Long branchId) {
+        final List<Branch> list = hib.cs().createCriteria(Branch.class).add(Property.forName("branchId").eq(branchId)).list();
+        return list.isEmpty() ? null : list.get(0);
+    }
+
 }
 
 /*

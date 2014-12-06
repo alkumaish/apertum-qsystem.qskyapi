@@ -19,7 +19,7 @@
     <!--property name="hibernate.hbm2ddl.auto">update</property-->
 
     <!-- Persistent classes -->
-    <mapping class="ru.apertum.qsky.model.Company"/>
+
     <mapping class="ru.apertum.qsky.model.Branch"/>
     <mapping class="ru.apertum.qsky.model.Employee"/>
     <mapping class="ru.apertum.qsky.model.Service"/>

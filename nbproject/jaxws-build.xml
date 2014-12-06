@@ -19,7 +19,7 @@
             <classpath path="${java.home}/../lib/tools.jar:${build.classes.dir}:${j2ee.platform.wsgen.classpath}:${javac.classpath}"/>
         </taskdef>
     </target>
-    <target name="wsgen-qskyapi/CustomerEventsWS" depends="wsgen-init">
+    <target name="wsgen-CustomerEventsWS" depends="wsgen-init">
         <copy todir="${build.classes.dir}/META-INF">
             <fileset dir="${webinf.dir}" includes="wsit-ru.apertum.qsky.webservices.CustomerEventsWS.xml"/>
         </copy>

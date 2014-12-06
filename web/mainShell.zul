@@ -7,10 +7,10 @@
         
 
         
-        <window id="main_w" title="${title}" border="normal" width="700px" height="500px" self="@{insert(main_window_data)}">
+        <window id="main_w" title="${title}" border="normal" width="700px" height="300px" self="@{insert(main_window_data)}">
             <caption label="Централизованное хранение статистики QSystem" />
             <div align="left">
-                <image id="img0" src="11" width=""  height=""/>
+                <image id="img0" src="resources/img/label48.png" width=""  height=""/>
             </div>
             <label sclass="labelstyle" value= "Облачное хранение статистики QSystem"/>
             

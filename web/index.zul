@@ -6,21 +6,23 @@
     <vbox xmlns:c="client" width="100%" height="100%" style="border:0px solid black;" align="center" pack="top" self="@{define(main_window_data)}">
         
         <hbox width="650px">
-            <label id="lbl"  sclass="labelstyle" value="Для выгрузки статистики войдите в систему."/>
+            <!--label id="lbl"  sclass="labelstyle" value="Для выгрузки статистики войдите в систему."/-->
         </hbox>
         
-        <div apply="org.zkoss.bind.BindComposer" viewModel="@id('vm') @init('ru.apertum.qsky.api.web.UserLoginForm')" validationMessages="@id('vmsgs')"
-             form="@id('fx') @load(vm.user) @save(vm.user, before='submit') @validator('ru.apertum.qsky.api.web.UserLoginValidator')">
+        <div apply="org.zkoss.bind.BindComposer" 
+             viewModel="@id('vm') @init('ru.apertum.qsky.web.UserLoginForm')" 
+             validationMessages="@id('vmsgs')"
+             form="@id('fx') @load(vm.user) @save(vm.user, before='submit') @validator('ru.apertum.qsky.web.UserLoginValidator')">
             <grid width="70%">
                 <columns>
-                    <column label="Данные клиента" width="30%" />
+                    <column label="Данные входа" width="30%" />
                     <column label="Ввести" width="70%"/>
                 </columns>
                 <rows>
                     <row align="left">
                         <label value="Пользователь" width="150px" />
                         <hlayout>
-                            <textbox value="@bind(fx.name)" c:onFocus="this.select()" width="200px" tabindex="1" />
+                            <textbox id="usr" value="@bind(fx.name)" c:onFocus="this.select()" width="200px" tabindex="1" />
                             <label class="error" value="@load(vmsgs['name'])" />
                         </hlayout>
                         
@@ -38,7 +40,8 @@
                     <row>
                         <cell colspan="3" style="text-align:center">
                             <vlayout>
-                                <label visible="@load(empty vmsgs)" value="@load(empty vmsgs ? '' : 'Доступ закрыт!', before='submit')" />
+                                <label class="error" value="@load(vmsgs['login'])" />
+                                <label visible="@load(empty vmsgs)" value="@load(empty vmsgs ? vmsgs['login'] : 'Доступ закрыт, проверте введенные данные!', before='submit')" />
                                 <button label="Войти" width="100px" height="30px" onClick="@command('submit')" />
                             </vlayout>
                         </cell>

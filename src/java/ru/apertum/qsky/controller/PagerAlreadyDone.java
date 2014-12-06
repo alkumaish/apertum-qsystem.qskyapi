@@ -25,7 +25,7 @@ public class PagerAlreadyDone {
         private static final PagerAlreadyDone INSTANCE = new PagerAlreadyDone();
     }
     
-    private HashMap<String, ArrayList<Long>> already = new HashMap<>();
+    private final HashMap<String, ArrayList<Long>> already = new HashMap<>();
     
     public void add(String ip, Long dataId){
         ArrayList<Long> list = already.get(ip);

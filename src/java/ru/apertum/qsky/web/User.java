@@ -1,11 +1,11 @@
-package ru.apertum.qsky.api.web;
+package ru.apertum.qsky.web;
 
 import java.util.Date;
 
 public class User {
 
-    private String name;
-    private String password;
+    private String name = "1";
+    private String password = "1";
 
     public String getName() {
         return name;

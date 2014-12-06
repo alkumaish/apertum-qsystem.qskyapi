@@ -7,38 +7,29 @@ CREATE SCHEMA IF NOT EXISTS `qsky` DEFAULT CHARACTER SET utf8 ;
 USE `qsky` ;
 
 -- -----------------------------------------------------
--- Table `qsky`.`company`
--- -----------------------------------------------------
-DROP TABLE IF EXISTS `qsky`.`company` ;
-
-CREATE  TABLE IF NOT EXISTS `qsky`.`company` (
-  `id` BIGINT NOT NULL AUTO_INCREMENT ,
-  `name` VARCHAR(500) NOT NULL DEFAULT '' ,
-  PRIMARY KEY (`id`) )
-ENGINE = InnoDB
-COMMENT = 'Список компаний. Ведется администратором' ;
-
-
--- -----------------------------------------------------
 -- Table `qsky`.`branch`
 -- -----------------------------------------------------
 DROP TABLE IF EXISTS `qsky`.`branch` ;
 
 CREATE  TABLE IF NOT EXISTS `qsky`.`branch` (
   `id` BIGINT NOT NULL AUTO_INCREMENT ,
-  `company_id` BIGINT NOT NULL ,
   `name` VARCHAR(500) NOT NULL DEFAULT '' ,
   `active` TINYINT(1)  NOT NULL DEFAULT false ,
+  `parent_id` BIGINT NULL ,
+  `branch_id` BIGINT NOT NULL ,
+  `time_zone` INT NULL DEFAULT 0 COMMENT 'учет время филиала относительно гринвича' ,
   PRIMARY KEY (`id`) ,
-  CONSTRAINT `fk_branch_company`
-    FOREIGN KEY (`company_id` )
-    REFERENCES `qsky`.`company` (`id` )
-    ON DELETE CASCADE
-    ON UPDATE CASCADE)
-ENGINE = InnoDB, 
+  CONSTRAINT `fk_branch_branch`
+    FOREIGN KEY (`parent_id` )
+    REFERENCES `qsky`.`branch` (`id` )
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB
 COMMENT = 'Филиалы. Заполняется администратором.' ;
 
-CREATE INDEX `idx_branch_company` ON `qsky`.`branch` (`company_id` ASC) ;
+CREATE INDEX `fk_branch_branch` ON `qsky`.`branch` (`parent_id` ASC) ;
+
+CREATE UNIQUE INDEX `branch_id_UNIQUE` ON `qsky`.`branch` (`branch_id` ASC) ;
 
 
 -- -----------------------------------------------------

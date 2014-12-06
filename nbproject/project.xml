@@ -3,12 +3,12 @@
     <type>org.netbeans.modules.web.project</type>
     <configuration>
         <buildExtensions xmlns="http://www.netbeans.org/ns/ant-build-extender/1">
-            <extension file="jaxws-build.xml" id="jaxws"/>
             <extension file="ivy-impl.xml" id="ivy">
                 <dependency dependsOn="-ivy-retrieve" target="-do-init"/>
                 <dependency dependsOn="-ivy-clean" target="-post-clean"/>
                 <dependency dependsOn="-ivy-publish" target="jar"/>
             </extension>
+            <extension file="jaxws-build.xml" id="jaxws"/>
         </buildExtensions>
         <data xmlns="http://www.netbeans.org/ns/web-project/3">
             <name>QSkyAPI</name>
