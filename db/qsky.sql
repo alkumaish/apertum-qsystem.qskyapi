@@ -27,7 +27,7 @@ CREATE  TABLE IF NOT EXISTS `qsky`.`branch` (
 ENGINE = InnoDB
 COMMENT = 'Филиалы. Заполняется администратором.' ;
 
-CREATE INDEX `fk_branch_branch` ON `qsky`.`branch` (`parent_id` ASC) ;
+CREATE INDEX `idx_branch_branch` ON `qsky`.`branch` (`parent_id` ASC) ;
 
 CREATE UNIQUE INDEX `branch_id_UNIQUE` ON `qsky`.`branch` (`branch_id` ASC) ;
 
@@ -112,6 +112,7 @@ CREATE  TABLE IF NOT EXISTS `qsky`.`customer` (
   `id` BIGINT NOT NULL AUTO_INCREMENT ,
   `branch_id` BIGINT NOT NULL ,
   `service_id` BIGINT NULL ,
+  `employee_id` BIGINT NULL COMMENT 'юзер к которому попал кастомер' ,
   `number` INT NULL COMMENT 'Номер клиента' ,
   `service_prefix` VARCHAR(45) NULL COMMENT 'Префикс услуги в номере клиента' ,
   `visit_time` DATETIME NOT NULL COMMENT 'Время прихода клиента' ,

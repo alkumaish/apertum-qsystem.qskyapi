@@ -16,24 +16,30 @@
  */
 package ru.apertum.qsky.common;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Properties;
+
 /**
  *
  * @author egorov
  */
 public class ServerProps {
 
+    private final ArrayList<String> vers;
+
     //final Properties settings;
     private ServerProps() {
-        /*
-        settings = new Properties();
-        final InputStream inStream = settings.getClass().getResourceAsStream("/qskyapi.properties");
+        final Properties settings = new Properties();
+        final InputStream inStream = this.getClass().getResourceAsStream("/qskyapi.properties");
         try {
-        settings.load(inStream);
+            settings.load(inStream);
         } catch (IOException ex) {
-        throw new RuntimeException("Проблемы с чтением свойств. ", ex);
+            throw new RuntimeException("Cant read version. " + ex);
         }
-         *
-         */
+        vers = new ArrayList<>(Arrays.asList(settings.getProperty("support_clients").split(";")));
     }
 
     public static ServerProps getInstance() {
@@ -44,14 +50,8 @@ public class ServerProps {
 
         private static final ServerProps INSTANCE = new ServerProps();
     }
-    final private String vers = "1;2";
 
     public boolean isSupportClient(String clientVersion) {
-        for (String ver : vers.split(";")) {
-            if (clientVersion.trim().equalsIgnoreCase(ver.trim())) {
-                return true;
-            }
-        }
-        return false;
+        return vers.contains(clientVersion);
     }
 }

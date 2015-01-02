@@ -36,17 +36,6 @@ import javax.persistence.TemporalType;
 @Table(name = "customer")
 public class Customer extends Element {
 
-    public static class States{
-        public static final int NEWBIE = 1;
-        public static final int WORK_FIRST = 2;
-        public static final int WORK_SECONDARY = 3;
-        public static final int REDIRECTED = 4;
-        public static final int BACK_AFTER_REEDIRECT = 5;
-        public static final int POSTPONED = 6;
-        public static final int FINISHED = 7;
-        public static final int REMOVED = 8;
-    }
-
     public Customer() {
     }
 
@@ -137,6 +126,18 @@ public class Customer extends Element {
     public void setServiceId(Long serviceId) {
         this.serviceId = serviceId;
     }
+
+    @Column(name = "employee_id")
+    private Long employeeId;
+
+    public Long getEmployeeId() {
+        return employeeId;
+    }
+
+    public void setEmployeeId(Long employeeId) {
+        this.employeeId = employeeId;
+    }
+
     //***************************************************************************************************************
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumns({

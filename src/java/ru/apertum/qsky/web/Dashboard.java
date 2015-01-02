@@ -5,26 +5,48 @@
  */
 package ru.apertum.qsky.web;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.GregorianCalendar;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Optional;
+import java.util.Properties;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
 import javax.naming.NamingException;
 import org.hibernate.Session;
+import org.hibernate.criterion.Restrictions;
 import org.zkoss.bind.annotation.AfterCompose;
 import org.zkoss.bind.annotation.Command;
 import org.zkoss.bind.annotation.ContextParam;
 import org.zkoss.bind.annotation.ContextType;
 import org.zkoss.bind.annotation.NotifyChange;
 import org.zkoss.zk.ui.Component;
+import org.zkoss.zk.ui.Sessions;
 import org.zkoss.zk.ui.event.DropEvent;
 import org.zkoss.zk.ui.event.Event;
 import org.zkoss.zk.ui.event.Events;
 import org.zkoss.zk.ui.select.Selectors;
 import org.zkoss.zk.ui.select.annotation.Listen;
 import org.zkoss.zk.ui.select.annotation.Wire;
+import org.zkoss.zul.Filedownload;
+import org.zkoss.zul.Footer;
+import org.zkoss.zul.Grid;
+import org.zkoss.zul.GroupsModelArray;
 import org.zkoss.zul.Hlayout;
 import org.zkoss.zul.Image;
 import org.zkoss.zul.Intbox;
 import org.zkoss.zul.Label;
 import org.zkoss.zul.Messagebox;
+import org.zkoss.zul.Panel;
+import org.zkoss.zul.PieModel;
+import org.zkoss.zul.SimplePieModel;
 import org.zkoss.zul.Textbox;
 import org.zkoss.zul.Tree;
 import org.zkoss.zul.Treecell;
@@ -38,6 +60,10 @@ import ru.apertum.qsky.controller.branch_tree.BranchTreeNode;
 import ru.apertum.qsky.ejb.IHibernateEJBLocal;
 import ru.apertum.qsky.model.Branch;
 import ru.apertum.qsky.model.BranchTreeModel;
+import ru.apertum.qsky.model.Customer;
+import ru.apertum.qsky.model.Dicts;
+import ru.apertum.qsky.model.StatisticViewModel;
+import ru.apertum.qsky.model.Step;
 
 /**
  *
@@ -45,8 +71,29 @@ import ru.apertum.qsky.model.BranchTreeModel;
  */
 public class Dashboard {
 
+    @Command
+    public void about() {
+        final Properties settings = new Properties();
+        final InputStream inStream = this.getClass().getResourceAsStream("/qskyapi.properties");
+        try {
+            settings.load(inStream);
+        } catch (IOException ex) {
+            throw new RuntimeException("Cant read version. " + ex);
+        }
+        Messagebox.show("***  QSkyAPI  ***\n"
+                + "   version " + settings.getProperty("version")
+                + "\n   date " + settings.getProperty("date")
+                + "\n   for QSkySenderPlugin version=" + settings.getProperty("support_clients"),
+                "QMS Apertum-QSystem", Messagebox.OK, Messagebox.INFORMATION);
+    }
+
+    private boolean isDemo = false;
+
     @AfterCompose
     public void afterCompose(@ContextParam(ContextType.VIEW) Component view) {
+        final org.zkoss.zk.ui.Session sess = Sessions.getCurrent();
+        isDemo = sess.getAttribute("IS_DEMO") == null ? false : (boolean) sess.getAttribute("IS_DEMO");
+
         Selectors.wireComponents(view, this, false);
         Selectors.wireEventListeners(view, this);
         doAfterCompose(null);
@@ -128,6 +175,7 @@ public class Dashboard {
                 w.setTitle(br.toString());
                 ((Textbox) w.getFellow("nameBranch")).setText(br.getName());
                 ((Intbox) w.getFellow("idBranch")).setValue(br.getBranchId().intValue());
+                ((Intbox) w.getFellow("timeZone")).setValue(br.getTimeZone());
                 w.setVisible(true);
                 w.setPosition("center");
                 w.doModal();
@@ -136,6 +184,9 @@ public class Dashboard {
             // Both category row and contact row can be item dropped
             dataRow.setDroppable("true");
             dataRow.addEventListener(Events.ON_DROP, (Event event) -> {
+                if (isDemo) {
+                    return;
+                }
                 // The dragged target is a TreeRow belongs to an
                 // Treechildren of TreeItem.
                 final Treeitem draggedItem = (Treeitem) ((DropEvent) event).getDragged().getParent();
@@ -178,6 +229,9 @@ public class Dashboard {
 
     @Command
     public void addBranch() {
+        if (isDemo) {
+            return;
+        }
         final long l = new Date().getTime() % 10000;
         Branch br = new Branch("New branch " + l);
         br.setBranchId(l);
@@ -195,6 +249,9 @@ public class Dashboard {
 
     @Command
     public void removeBranch() {
+        if (isDemo) {
+            return;
+        }
         if (tree.getSelectedItem() != null) {
             if (((BranchTreeNode) tree.getSelectedItem().getValue()).getChildCount() != 0) {
                 Messagebox.show("У филиала есть подчиненные. Удалите или перенечите их перед удалением.", "Удаление не возможно", Messagebox.OK, Messagebox.ERROR);
@@ -227,12 +284,18 @@ public class Dashboard {
 
     @Command
     public void closeBranchPropsDialog() {
+        if (isDemo) {
+            branchPropsDialog.setVisible(false);
+            return;
+        }
         if (tree.getSelectedItem() != null) {
             BranchTreeNode br_node = (BranchTreeNode) tree.getSelectedItem().getValue();
             Branch br = ((BranchTreeNode) tree.getSelectedItem().getValue()).getData();
 
             br.setName(((Textbox) branchPropsDialog.getFellow("nameBranch")).getText());
             br.setBranchId(((Intbox) branchPropsDialog.getFellow("idBranch")).getValue().longValue());
+            br.setBranchId(((Intbox) branchPropsDialog.getFellow("idBranch")).getValue().longValue());
+            br.setTimeZone(((Intbox) branchPropsDialog.getFellow("timeZone")).getValue());
 
             final Session ses = getHib().cs();
             ses.beginTransaction();
@@ -252,13 +315,255 @@ public class Dashboard {
         }
     }
 
+    @Wire
+    private Label branchName;
+
+    @Wire
+    private Panel statPapamPanel;
+    private Branch selectedBranch = null;
+
     @Listen("onSelect = #tree")
-    public void selectBranch() { 
+    @NotifyChange(value = {"branchName", "statPapamPanel"})
+    public void selectBranch() {
         BranchTreeNode selectedNode = (BranchTreeNode) tree.getSelectedItem().getValue();
-        System.out.println("SELECTED " + selectedNode); 
-        //Category selectedCategory = selectedNode.getData();
-        //List<Car> cars = carService.queryByFilter(selectedCategory.getName());
-        //resultGrid.setModel(new ListModelList<Car>(cars));
+        System.out.println("SELECTED " + selectedNode);
+        Sessions.getCurrent().setAttribute("BRANCH", selectedNode.getData());
+        selectedBranch = selectedNode.getData();
+        branchName.setValue(selectedNode.getData().getName());
+        statPapamPanel.setTitle(selectedNode.getData().getName());
+    }
+
+    public static class Pair implements Comparable<Pair> {
+
+        Long l;
+        Integer i;
+        String st;
+
+        public Long getL() {
+            return l;
+        }
+
+        public void setL(Long l) {
+            this.l = l;
+        }
+
+        public Integer getI() {
+            return i;
+        }
+
+        public void setI(Integer i) {
+            this.i = i;
+        }
+
+        public String getSt() {
+            return st;
+        }
+
+        public void setSt(String st) {
+            this.st = st;
+        }
+
+        public Pair(Long l, Integer i) {
+            this.l = l;
+            this.i = i;
+        }
+
+        public Pair(String st, Integer i) {
+            this.st = st;
+            this.i = i;
+        }
+
+        @Override
+        public int compareTo(Pair o) {
+            return i.compareTo(o.i);
+        }
+
+    }
+
+    @Command("showBranchSituation")
+    @NotifyChange(value = {"pieChart", "dialChart", "servicesCustList"})
+    public synchronized void showBranchSituation() {
+        if (selectedBranch == null) {
+            return;
+        }
+        final Session ses = getHib().cs();
+        ses.beginTransaction();
+        final List<Customer> custs;
+        try {
+
+            final GregorianCalendar day = new GregorianCalendar();
+            day.set(GregorianCalendar.HOUR_OF_DAY, 0);
+            day.set(GregorianCalendar.MINUTE, 0);
+            final Date today_m = day.getTime();
+            day.set(GregorianCalendar.HOUR_OF_DAY, 23);
+            day.set(GregorianCalendar.MINUTE, 59);
+
+            custs = ses.createCriteria(Customer.class)
+                    .add(Restrictions.eq("branchId", selectedBranch.getBranchId()))
+                    .add(Restrictions.between("visitTime", today_m, day.getTime())).list();
+        } catch (Exception ex) {
+            throw new RuntimeException("Not loaded a list of customers. " + ex);
+        } finally {
+            ses.getTransaction().rollback();
+        }
+
+        final Predicate<? super Customer> filter = (cust) -> {
+            return cust.getState() != 0 && cust.getState() != 10;
+        };
+
+        final HashMap<Long, Integer> cnt = new HashMap<>();
+        Stream<Customer> scu = custs.stream().filter(filter);
+
+        final long clntsCnt = custs.stream().filter(filter).count();
+        scu.forEach((cust) -> {
+            Integer serv = cnt.get(cust.getServiceId());
+            if (serv != null) {
+                cnt.put(cust.getServiceId(), ++serv);
+            } else {
+                cnt.put(cust.getServiceId(), 1);
+            }
+        });
+        scu = custs.stream().filter(filter);
+
+        final Optional<Customer> mw = scu.max((cust1, cust2) -> {
+            return (cust1.getWaiting() == 0 ? (new Long(new Date().getTime() - cust1.getVisitTime().getTime())) : cust1.getWaiting()).compareTo(cust2.getWaiting() == 0 ? (new Date().getTime() - cust2.getVisitTime().getTime()) : cust2.getWaiting());
+        });
+        long maxWaiting = mw.isPresent() ? (mw.get().getWaiting() == 0 ? (new Date().getTime() - mw.get().getVisitTime().getTime()) : mw.get().getWaiting()) : 0;
+
+        int i = 0;
+        long avg = 0;
+        for (Customer cust : custs) {
+            if (cust.getState() != 0 && cust.getWaiting() != null) {
+                avg = avg + (cust.getWaiting() == 0 ? (new Date().getTime() - cust.getVisitTime().getTime()) : cust.getWaiting());
+                i++;
+            }
+        }
+
+        final List<Pair> ls = new ArrayList<>();
+        cnt.keySet().stream().forEach((l) -> {
+            ls.add(new Pair(l, cnt.get(l)));
+        });
+        final PieModel model = new SimplePieModel();
+        ls.sort((Pair o1, Pair o2) -> {
+            return Integer.compare(o2.i, o1.i);
+        });
+        ls.stream().limit(10).forEach((Pair p) -> {
+            final String name = Dicts.getInstance().getServiceName(selectedBranch.getBranchId(), p.l);
+            model.setValue((name.length() > 30 ? name.substring(0, 30) + "..." : name) + "(" + p.i + ")", p.i);
+        });
+        servicesCustList.clear();
+        ls.stream().forEach((Pair p) -> {
+            final String name = Dicts.getInstance().getServiceName(selectedBranch.getBranchId(), p.l);
+            servicesCustList.add(new Pair(name, p.i));
+        });
+        pieChart.setModel(model);
+
+        dialChart.averageModel.setValue(0, i == 0 ? 0 : avg / i / 1000 / 60);
+        dialChart.customersModel.setValue(0, clntsCnt);
+        dialChart.waitingModel.setValue(0, maxWaiting < 1000 * 60 ? (clntsCnt == 0 ? 0 : 1) : maxWaiting / 1000 / 60);
+    }
+
+    private final ArrayList<Pair> servicesCustList = new ArrayList();
+
+    public ArrayList<Pair> getServicesCustList() {
+        return servicesCustList;
+    }
+
+    private final PieChartVM pieChart = new PieChartVM();
+
+    public PieChartVM getPieChart() {
+        return pieChart;
+    }
+
+    private final DialChartVM dialChart = new DialChartVM();
+
+    public DialChartVM getDialChart() {
+        return dialChart;
+    }
+
+    private final StatisticViewModel statVM = new StatisticViewModel();
+
+    public StatisticViewModel getStatVM() {
+        return statVM;
+    }
+
+    @Wire
+    private Grid statisticGrid;
+
+    @Wire
+    private Footer footer_category;
+
+    @Command("showBranchStatistic")
+    @NotifyChange(value = {"statVM", "statisticGrid", "footer_category"})
+    public synchronized void showBranchStatistic() {
+        if (selectedBranch == null) {
+            return;
+        }
+        final List<Step> stst = statVM.loadStats(selectedBranch.getBranchId(), getHib().cs());
+        GroupsModelArray mo = statVM.getRegim() == 0
+                ? new StatisticViewModel.StaticticGroupingEmplsModel(statVM.prepareDataByUser(stst), new StatisticViewModel.RecordEmployeeComparator())
+                : new StatisticViewModel.StaticticGroupingServsModel(statVM.prepareDataByUser(stst), new StatisticViewModel.RecordServiceComparator());
+        statVM.setStatisticModel(mo);
+        statisticGrid.setModel(mo);
+        footer_category.setLabel((statVM.getRegim() == 0 ? "Количество операторов, оказывающих услуги : " : "Количество оказываемых услуг : ") + mo.getGroupCount());
+    }
+
+    @Command("downloadBranchStatistic")
+    public synchronized void downloadBranchStatistic() {
+        if (selectedBranch == null) {
+            return;
+        }
+        final Session ses = getHib().cs();
+        ses.beginTransaction();
+        final List<Customer> custs;
+        try {
+            final GregorianCalendar day = new GregorianCalendar();
+            day.setTime(statVM.getStart());
+            day.set(GregorianCalendar.HOUR_OF_DAY, 0);
+            day.set(GregorianCalendar.MINUTE, 0);
+            final Date today_m = day.getTime();
+            day.setTime(statVM.getFinish());
+            day.set(GregorianCalendar.HOUR_OF_DAY, 23);
+            day.set(GregorianCalendar.MINUTE, 59);
+
+            custs = ses.createCriteria(Customer.class)
+                    .add(Restrictions.eq("branchId", selectedBranch.getBranchId()))
+                    .add(Restrictions.between("visitTime", today_m, day.getTime())).list();
+        } catch (Exception ex) {
+            throw new RuntimeException("Not loaded a list of customers. " + ex);
+        } finally {
+            ses.getTransaction().rollback();
+        }
+        final StringBuffer sb = new StringBuffer("№;Филиал;Услуга;Персонал;Клиент;Встал;Начало;Завершение;Ожидание;Работа;Статус1;Статус2;\n");
+        int nom = 0;
+        for (Customer cust : custs) {
+            Step step = cust.getFirstStep();
+            while (step != null) {
+                sb.append(++nom).append(";");
+                sb.append(selectedBranch.getName()).append(";");
+                sb.append(Dicts.getInstance().getServiceName(selectedBranch.getBranchId(), step.getServiceId())).append(";");
+                sb.append(Dicts.getInstance().getEmployeeName(selectedBranch.getBranchId(), step.getEmployeeId())).append(";");
+                sb.append(cust.getPrefix()).append(cust.getNumber()).append(";");
+                sb.append(SimpleDateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(step.getStandTime())).append(";");
+                if (step.getFinishState() == 0) {
+                    sb.append(";;;;");
+                } else {
+                    sb.append(SimpleDateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(step.getStartTime())).append(";");
+                    sb.append(SimpleDateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(step.getFinishTime())).append(";");
+                    sb.append(step.getWaiting() / 1000 / 60).append(";");
+                    sb.append(step.getWorking() / 1000 / 60).append(";");
+                }
+                sb.append(step.getStartState()).append(";");
+                sb.append(step.getFinishState()).append(";");
+                step = step.getAfter();
+                sb.append("\n");
+            }
+        }
+        try {
+            Filedownload.save(sb.toString().getBytes("cp1251"), "text/csv", "qstat_" + SimpleDateFormat.getDateInstance().format(statVM.getStart()) + "-" + SimpleDateFormat.getDateInstance().format(statVM.getFinish()) + ".csv");
+        } catch (UnsupportedEncodingException ex) {
+        }
+        sb.setLength(0);
     }
 
 }

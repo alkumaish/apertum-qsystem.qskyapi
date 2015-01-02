@@ -23,6 +23,7 @@ import javax.ejb.EJB;
 import javax.ejb.Singleton;
 import org.hibernate.criterion.Property;
 import ru.apertum.qsky.api.ICustomerEvents;
+import ru.apertum.qsky.common.CustomerState;
 import ru.apertum.qsky.common.ServerProps;
 import ru.apertum.qsky.model.Branch;
 import ru.apertum.qsky.model.Customer;
@@ -44,7 +45,84 @@ public class CustomerEventsEJB implements ICustomerEvents {
     // "Insert Code > Add Business Method")
 
     @Override
-    public synchronized void standInService(Long branchId, Long serviceId, Long customerId, Integer number, String prefix) {
+    public synchronized void changeCustomerStatus(Long branchId, Long serviceId, Long employeeId, Long customerId, Integer status, Integer number, String prefix) {
+
+        if (status >= CustomerState.values().length) {
+
+        } else {
+
+            final CustomerState cs = CustomerState.values()[status];
+            switch (cs) {
+                //0 удален по неявке
+                case STATE_DEAD:
+                    kickCustomer(branchId, serviceId, customerId, employeeId, status);
+                    break;
+
+                // 1 стоит и ждет в очереди
+                case STATE_WAIT:
+                    standInService(branchId, serviceId, customerId, status, number, prefix);
+                    break;
+
+                // 2 стоит и ждет в очереди после того, как отлежался в отложенных положенное время и автоматически отправился в прежнюю очередь с повышенным приоритетом
+                case STATE_WAIT_AFTER_POSTPONED:
+                    moveToWaitCustomerAfterPostpone(branchId, customerId, serviceId, status);
+                    break;
+
+                // 3 Кастомер был опять поставлен в очередь т.к. услуга комплекстая и ждет с номером
+                case STATE_WAIT_COMPLEX_SERVICE:
+                    moveToWaitNextComplexService(branchId, customerId, serviceId, employeeId, status);
+                    break;
+
+                // 4 пригласили
+                case STATE_INVITED:
+                    inviteCustomer(branchId, customerId, serviceId, employeeId, status);
+                    break;
+
+                // 5 пригласили повторно в цепочке обработки. т.е. клиент вызван к оператору не первый раз а после редиректа или отложенности
+                case STATE_INVITED_SECONDARY:
+                    inviteSecondary(branchId, customerId, serviceId, employeeId, status);
+                    break;
+
+                // 6 отправили в другую очередь, идет как бы по редиректу в верх. Стоит ждет к новой услуге.
+                case STATE_REDIRECT:
+                    redirectCustomer(branchId, customerId, employeeId, serviceId, status);
+                    break;
+
+                // 7 начали с ним работать
+                case STATE_WORK:
+                    startWorkWithCustomer(branchId, customerId, serviceId, employeeId, status);
+                    break;
+
+                // 8 начали с ним работать повторно в цепочке обработки
+                case STATE_WORK_SECONDARY:
+                    startWorkSecondary(branchId, customerId, serviceId, employeeId, status);
+                    break;
+
+                // 9 состояние когда кастомер возвращается к прежней услуге после редиректа,
+                // по редиректу в низ. Стоит ждет к старой услуге.
+                case STATE_BACK:
+                    backInService(branchId, customerId, employeeId, serviceId, status);
+                    break;
+
+                // 10 с кастомером закончили работать и он идет домой
+                case STATE_FINISH:
+                    finishWorkWithCustomer(branchId, customerId, employeeId, status);
+                    break;
+
+                // 11 с кастомером закончили работать и поместили в отложенные. домой не идет, сидит ждет покуда не вызовут.
+                case STATE_POSTPONED:
+                    customerToPostponed(branchId, customerId, employeeId, status);
+                    break;
+
+                default:
+                    throw new AssertionError();
+            }
+
+        }
+
+    }
+
+    public void standInService(Long branchId, Long serviceId, Long customerId, Integer status, Integer number, String prefix) {
         System.out.println("Start standInService");
         hib.cs().beginTransaction();
         Customer customer = getCustomer(branchId, customerId);
@@ -56,12 +134,12 @@ public class CustomerEventsEJB implements ICustomerEvents {
         }
         customer.setNumber(number);
         customer.setPrefix(prefix);
-        customer.setState(Customer.States.NEWBIE);
+        customer.setState(status);
 
         final Step firstStep = new Step(branchId, customerId);
         firstStep.setServiceId(serviceId);
         firstStep.setStandTime(new Date());
-        firstStep.setStartState(Customer.States.NEWBIE);
+        firstStep.setStartState(status);
         customer.setFirstStep(firstStep);
 
         try {
@@ -75,19 +153,20 @@ public class CustomerEventsEJB implements ICustomerEvents {
         System.out.println("Finish standInService");
     }
 
-    @Override
-    public synchronized void kickCustomer(Long branchId, Long serviceId, Long customerId, Long employeeId) {
+    public void kickCustomer(Long branchId, Long serviceId, Long customerId, Long employeeId, Integer status) {
         System.out.println("Start kickCustomer");
         hib.cs().beginTransaction();
         Customer customer = getCustomer(branchId, customerId);
         if (customer == null) {
             return;
         }
-        customer.setState(Customer.States.REMOVED);
+        customer.setState(status);
         try {
             if (customer.getFirstStep() != null) {
                 final Step step = customer.getFirstStep().getLastStep();
-                step.setFinishState(Customer.States.REMOVED);
+                step.setFinishState(status);
+                step.setFinishTime(new Date());
+                step.setEmployeeId(employeeId);
                 hib.cs().saveOrUpdate(step);
             }
             hib.cs().saveOrUpdate(customer);
@@ -99,18 +178,45 @@ public class CustomerEventsEJB implements ICustomerEvents {
         System.out.println("Finish kickCustomer");
     }
 
-    @Override
-    public synchronized void inviteCustomer(Long branchId, Long customerId, Long serviceId, Long employeeId) {
-        System.out.println("Invoke inviteCustomer");
+    public void inviteCustomer(Long branchId, Long customerId, Long serviceId, Long employeeId, Integer status) {
+        System.out.println("Start inviteCustomer");
+        hib.cs().beginTransaction();
+        Customer customer = getCustomer(branchId, customerId);
+        if (customer == null) {
+            return;
+        }
+        customer.setState(status);
+        customer.setEmployeeId(employeeId);
+        try {
+            hib.cs().saveOrUpdate(customer);
+            hib.cs().getTransaction().commit();
+        } catch (Exception ex) {
+            hib.cs().getTransaction().rollback();
+        } finally {
+        }
+        System.out.println("Finish inviteCustomer");
     }
 
-    @Override
-    public synchronized void inviteSecondary(Long branchId, Long customerId, Long serviceId, Long employeeId) {
-        System.out.println("Invoke inviteSecondary");
+    public void inviteSecondary(Long branchId, Long customerId, Long serviceId, Long employeeId, Integer status) {
+        System.out.println("Start inviteSecondary");
+        hib.cs().beginTransaction();
+        Customer customer = getCustomer(branchId, customerId);
+        if (customer == null) {
+            return;
+        }
+        customer.setState(status);
+        customer.setEmployeeId(employeeId);
+        try {
+            hib.cs().saveOrUpdate(customer);
+            hib.cs().getTransaction().commit();
+        } catch (Exception ex) {
+            hib.cs().getTransaction().rollback();
+        } finally {
+        }
+        System.out.println("Finish inviteSecondary");
     }
 
-    @Override
-    public synchronized void startWorkWithCustomer(Long branchId, Long customerId, Long serviceId, Long employeeId) {
+    public void startWorkWithCustomer(Long branchId, Long customerId, Long serviceId, Long employeeId, Integer status) {
         System.out.println("Start startWorkWithCustomer");
         hib.cs().beginTransaction();
         Customer customer = getCustomer(branchId, customerId);
@@ -121,7 +227,7 @@ public class CustomerEventsEJB implements ICustomerEvents {
         if (serviceId != null && serviceId > 0) {
             customer.setServiceId(serviceId);
         }
-        customer.setState(Customer.States.WORK_FIRST);
+        customer.setState(status);
 
         final Step step = customer.getFirstStep().getLastStep();
         step.setEmployeeId(employeeId);
@@ -142,8 +248,7 @@ public class CustomerEventsEJB implements ICustomerEvents {
         System.out.println("Finish startWorkWithCustomer");
     }
 
-    @Override
-    public synchronized void startWorkSecondary(Long branchId, Long customerId, Long serviceId, Long employeeId) {
+    public void startWorkSecondary(Long branchId, Long customerId, Long serviceId, Long employeeId, Integer status) {
         System.out.println("Start startWorkSecondary");
         hib.cs().beginTransaction();
         Customer customer = getCustomer(branchId, customerId);
@@ -154,7 +259,7 @@ public class CustomerEventsEJB implements ICustomerEvents {
         if (serviceId != null && serviceId > 0) {
             customer.setServiceId(serviceId);
         }
-        customer.setState(Customer.States.WORK_SECONDARY);
+        customer.setState(status);
 
         final Step step = customer.getFirstStep().getLastStep();
         step.setEmployeeId(employeeId);
@@ -174,8 +279,7 @@ public class CustomerEventsEJB implements ICustomerEvents {
         System.out.println("Finish startWorkSecondary");
     }
 
-    @Override
-    public synchronized void customerToPostponed(Long branchId, Long customerId, Long employeeId) {
+    public void customerToPostponed(Long branchId, Long customerId, Long employeeId, Integer status) {
         System.out.println("Start customerToPostponed");
         hib.cs().beginTransaction();
         Customer customer = getCustomer(branchId, customerId);
@@ -183,18 +287,18 @@ public class CustomerEventsEJB implements ICustomerEvents {
             System.out.println("ERROR: Customer not found id=" + customerId);
             return;
         }
-        customer.setState(Customer.States.POSTPONED);
+        customer.setState(status);
 
         final Step step = customer.getFirstStep().getLastStep();
         step.setEmployeeId(employeeId);
         step.setFinishTime(new Date());
-        step.setFinishState(Customer.States.POSTPONED);
+        step.setFinishState(status);
         step.setWorking(step.getFinishTime().getTime() - step.getStartTime().getTime());
         customer.setWorking((customer.getWorking() * (customer.getFirstStep().getStepsCount() - 1) + step.getWorking()) / customer.getFirstStep().getStepsCount());
 
         final Step postponedStep = new Step(branchId, customerId);
         postponedStep.setStandTime(new Date());
-        postponedStep.setStartState(Customer.States.POSTPONED);
+        postponedStep.setStartState(status);
         step.setAfter(postponedStep);
         postponedStep.setBefore(step);
 
@@ -210,8 +314,7 @@ public class CustomerEventsEJB implements ICustomerEvents {
         System.out.println("Finish customerToPostponed");
     }
 
-    @Override
-    public synchronized void redirectCustomer(Long branchId, Long customerId, Long employeeId, Long serviceId, Long newServiceId) {
+    public void redirectCustomer(Long branchId, Long customerId, Long employeeId, Long serviceId, Integer status) {
         System.out.println("Start redirectCustomer");
         hib.cs().beginTransaction();
         Customer customer = getCustomer(branchId, customerId);
@@ -219,20 +322,20 @@ public class CustomerEventsEJB implements ICustomerEvents {
             System.out.println("ERROR: Customer not found id=" + customerId);
             return;
         }
-        customer.setState(Customer.States.REDIRECTED);
-        customer.setServiceId(newServiceId);
+        customer.setState(status);
+        customer.setServiceId(serviceId);
 
         final Step step = customer.getFirstStep().getLastStep();
         step.setEmployeeId(employeeId);
         step.setFinishTime(new Date());
-        step.setFinishState(Customer.States.REDIRECTED);
+        step.setFinishState(status);
         step.setWorking(step.getFinishTime().getTime() - step.getStartTime().getTime());
         customer.setWorking((customer.getWorking() * (customer.getFirstStep().getStepsCount() - 1) + step.getWorking()) / customer.getFirstStep().getStepsCount());
 
         final Step redirectedStep = new Step(branchId, customerId);
         redirectedStep.setStandTime(new Date());
-        redirectedStep.setStartState(Customer.States.REDIRECTED);
-        redirectedStep.setServiceId(newServiceId);
+        redirectedStep.setStartState(status);
+        redirectedStep.setServiceId(serviceId);
         step.setAfter(redirectedStep);
         redirectedStep.setBefore(step);
 
@@ -248,8 +351,80 @@ public class CustomerEventsEJB implements ICustomerEvents {
         System.out.println("Finish redirectCustomer");
     }
 
-    @Override
-    public synchronized void backInService(Long branchId, Long customerId, Long employeeId, Long serviceId, Long newServiceId) {
+    public void moveToWaitCustomerAfterPostpone(Long branchId, Long customerId, Long serviceId, Integer status) {
+        System.out.println("Start moveToWaitCustomer");
+        hib.cs().beginTransaction();
+        Customer customer = getCustomer(branchId, customerId);
+        if (customer == null) {
+            System.out.println("ERROR: Customer not found id=" + customerId);
+            return;
+        }
+        customer.setState(status);
+        customer.setServiceId(serviceId);
+
+        final Step step = customer.getFirstStep().getLastStep();
+        step.setFinishTime(new Date());
+        step.setFinishState(status);
+        step.setWaiting(step.getFinishTime().getTime() - step.getStartTime().getTime());
+        customer.setWaiting((customer.getWaiting() * (customer.getFirstStep().getStepsCount() - 1) + step.getWaiting()) / customer.getFirstStep().getStepsCount());
+
+        final Step waitStep = new Step(branchId, customerId);
+        waitStep.setStandTime(new Date());
+        waitStep.setStartState(status);
+        waitStep.setServiceId(serviceId);
+        step.setAfter(waitStep);
+        waitStep.setBefore(step);
+
+        try {
+            hib.cs().saveOrUpdate(waitStep);
+            hib.cs().saveOrUpdate(step);
+            hib.cs().saveOrUpdate(customer);
+            hib.cs().getTransaction().commit();
+        } catch (Exception ex) {
+            hib.cs().getTransaction().rollback();
+        } finally {
+        }
+        System.out.println("Finish moveToWaitCustomer");
+    }
+
+    public void moveToWaitNextComplexService(Long branchId, Long customerId, Long serviceId, Long employeeId, Integer status) {
+        System.out.println("Start moveToWaitNextComplexService");
+        hib.cs().beginTransaction();
+        Customer customer = getCustomer(branchId, customerId);
+        if (customer == null) {
+            System.out.println("ERROR: Customer not found id=" + customerId);
+            return;
+        }
+        customer.setState(status);
+        customer.setServiceId(serviceId);
+
+        final Step step = customer.getFirstStep().getLastStep();
+        step.setEmployeeId(employeeId);
+        step.setFinishTime(new Date());
+        step.setFinishState(status);
+        step.setWorking(step.getFinishTime().getTime() - step.getStartTime().getTime());
+        customer.setWorking((customer.getWorking() * (customer.getFirstStep().getStepsCount() - 1) + step.getWorking()) / customer.getFirstStep().getStepsCount());
+
+        final Step nextComplexStep = new Step(branchId, customerId);
+        nextComplexStep.setStandTime(new Date());
+        nextComplexStep.setStartState(status);
+        nextComplexStep.setServiceId(serviceId);
+        step.setAfter(nextComplexStep);
+        nextComplexStep.setBefore(step);
+
+        try {
+            hib.cs().saveOrUpdate(nextComplexStep);
+            hib.cs().saveOrUpdate(step);
+            hib.cs().saveOrUpdate(customer);
+            hib.cs().getTransaction().commit();
+        } catch (Exception ex) {
+            hib.cs().getTransaction().rollback();
+        } finally {
+        }
+        System.out.println("Finish moveToWaitNextComplexService");
+    }
+
+    public void backInService(Long branchId, Long customerId, Long employeeId, Long serviceId, Integer status) {
         System.out.println("Start backInService");
         hib.cs().beginTransaction();
         Customer customer = getCustomer(branchId, customerId);
@@ -257,20 +432,20 @@ public class CustomerEventsEJB implements ICustomerEvents {
             System.out.println("ERROR: Customer not found id=" + customerId);
             return;
         }
-        customer.setState(Customer.States.BACK_AFTER_REEDIRECT);
-        customer.setServiceId(newServiceId);
+        customer.setState(status);
+        customer.setServiceId(serviceId);
 
         final Step step = customer.getFirstStep().getLastStep();
         step.setEmployeeId(employeeId);
         step.setFinishTime(new Date());
-        step.setFinishState(Customer.States.BACK_AFTER_REEDIRECT);
+        step.setFinishState(status);
         step.setWorking(step.getFinishTime().getTime() - step.getStartTime().getTime());
         customer.setWorking((customer.getWorking() * (customer.getFirstStep().getStepsCount() - 1) + step.getWorking()) / customer.getFirstStep().getStepsCount());
 
         final Step redirectedStep = new Step(branchId, customerId);
         redirectedStep.setStandTime(new Date());
-        redirectedStep.setStartState(Customer.States.BACK_AFTER_REEDIRECT);
-        redirectedStep.setServiceId(newServiceId);
+        redirectedStep.setStartState(status);
+        redirectedStep.setServiceId(serviceId);
         step.setAfter(redirectedStep);
         redirectedStep.setBefore(step);
 
@@ -286,8 +461,7 @@ public class CustomerEventsEJB implements ICustomerEvents {
         System.out.println("Finish backInService");
     }
 
-    @Override
-    public synchronized void finishWorkWithCustomer(Long branchId, Long customerId, Long employeeId) {
+    public void finishWorkWithCustomer(Long branchId, Long customerId, Long employeeId, Integer status) {
         System.out.println("Start standInService");
         hib.cs().beginTransaction();
         Customer customer = getCustomer(branchId, customerId);
@@ -295,11 +469,11 @@ public class CustomerEventsEJB implements ICustomerEvents {
             System.out.println("ERROR: Customer not found id=" + customerId);
             return;
         }
-        customer.setState(Customer.States.FINISHED);
+        customer.setState(status);
 
         final Step step = customer.getFirstStep().getLastStep();
         step.setEmployeeId(employeeId);
-        step.setFinishState(Customer.States.FINISHED);
+        step.setFinishState(status);
         step.setFinishTime(new Date());
         step.setWorking(step.getFinishTime().getTime() - step.getStartTime().getTime());
         customer.setWorking((customer.getWorking() * (customer.getFirstStep().getStepsCount() - 1) + step.getWorking()) / customer.getFirstStep().getStepsCount());
@@ -390,12 +564,12 @@ public class CustomerEventsEJB implements ICustomerEvents {
 
     @Override
     public Integer ping(String version) {
-        return ServerProps.getInstance().isSupportClient(version) ? 1 : 100500;
+        return ServerProps.getInstance().isSupportClient(version) ? 1 : -1;
     }
 
     @Override
-    public void sendServiceName(Long branchId, Long serviceId, String name) {
-        System.out.println("Invoke sendServiceName");
+    public synchronized void sendServiceName(Long branchId, Long serviceId, String name) {
+        System.out.println("Invoke sendServiceName " + name);
         dataLock.lock();
         try {
             hib.cs().beginTransaction();
@@ -416,8 +590,8 @@ public class CustomerEventsEJB implements ICustomerEvents {
     private static final ReentrantLock dataLock = new ReentrantLock();
 
     @Override
-    public void sendUserName(Long branchId, Long employeeId, String name) {
-        System.out.println("Invoke sendUserName");
+    public synchronized void sendUserName(Long branchId, Long employeeId, String name) {
+        System.out.println("Invoke sendUserName " + name);
         dataLock.lock();
         try {
             hib.cs().beginTransaction();
@@ -451,7 +625,7 @@ public class CustomerEventsEJB implements ICustomerEvents {
         final List<Service> list = hib.cs().createCriteria(Service.class).add(Property.forName("branchId").eq(branchId)).add(Property.forName("serviceId").eq(serviceId)).list();
         return list.isEmpty() ? null : list.get(0);
     }
-    
+
     private Branch getBranch(Long branchId) {
         final List<Branch> list = hib.cs().createCriteria(Branch.class).add(Property.forName("branchId").eq(branchId)).list();
         return list.isEmpty() ? null : list.get(0);
@@ -460,10 +634,37 @@ public class CustomerEventsEJB implements ICustomerEvents {
 }
 
 /*
-// QSkyAPI  listening at address at http://<server_address>:8080/<serviceName>/<name>
-@WebService(name = "qskyapi/CustomerEventsWS", serviceName="customer_events", portName="qsky")
-public class CustomerEventsWS {
+ // QSkyAPI  listening at address at http://<server_address>:8080/<serviceName>/<name>
+ @WebService(name = "qskyapi/CustomerEventsWS", serviceName="customer_events", portName="qsky")
+ public class CustomerEventsWS {
 
-@EJB(mappedName = "ejb/qskyapi/customer_events")
-private ICustomerEvents ejbRef;
+ @EJB(mappedName = "ejb/qskyapi/customer_events")
+ private ICustomerEvents ejbRef;
+ */
+
+/*
+
+ /**
+ *
+ * @author Evgeniy Egorov
+ *
+ // QSkyAPI  listening at address at http://<server_address>:8080/<serviceName>/<name>
+ @WebService(name = "qskyapi/CustomerEventsWS", serviceName = "customer_events", portName = "qsky")
+ public class CustomerEventsWS {
+ @EJB
+ private ICustomerEvents ejbRef;// Add business logic below. (Right-click in editor and choose
+ // "Insert Code > Add Web Service Operation")
+
+ @WebMethod(operationName = "standInService")
+ @Oneway
+ public void standInService(@WebParam(name = "branchId") Long branchId, @WebParam(name = "serviceId") Long serviceId, @WebParam(name = "customerId") Long customerId, @WebParam(name = "number") Integer number, @WebParam(name = "prefix") String prefix) {
+ ejbRef.standInService(branchId, serviceId, customerId, number, prefix);
+ }
+
+ @WebMethod(operationName = "kickCustomer")
+ @Oneway
+ public void kickCustomer(@WebParam(name = "branchId") Long branchId, @WebParam(name = "serviceId") Long serviceId, @WebParam(name = "customerId") Long customerId, @WebParam(name = "employeeId") Long employeeId) {
+ ejbRef.kickCustomer(branchId, serviceId, customerId, employeeId);
+ }
+
  */

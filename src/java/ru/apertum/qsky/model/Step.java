@@ -202,4 +202,10 @@ public class Step extends Element {
     public void setFinishState(Integer finishState) {
         this.finishState = finishState;
     }
+
+    @Override
+    public String toString() {
+        return branchId + "/" + serviceId + "/" + employeeId;
+    }
+
 }

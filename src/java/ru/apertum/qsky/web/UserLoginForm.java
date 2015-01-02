@@ -8,7 +8,7 @@ public class UserLoginForm {
     private User user = new User();
 
     public User getUser() {
-        final User cl = (User) Sessions.getCurrent().getAttribute("DATA");
+        final User cl = (User) Sessions.getCurrent().getAttribute("USER");
         if (cl != null) {
             user = cl;
         }
@@ -22,7 +22,7 @@ public class UserLoginForm {
     @Command
     public void submit() {
         try {
-            Sessions.getCurrent().setAttribute("DATA", user);
+            Sessions.getCurrent().setAttribute("USER", user);
             Executions.sendRedirect("/dashboard.zul");
         } catch (Throwable t) {
             System.err.println("Server SOO is down! " + t);

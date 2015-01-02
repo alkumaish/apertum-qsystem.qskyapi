@@ -25,25 +25,28 @@ import javax.ejb.Local;
 @Local
 public interface ICustomerEvents {
 
-    public void standInService(Long branchId, Long serviceId, Long customerId, Integer number, String prefix);
+    public void changeCustomerStatus(Long branchId, Long serviceId, Long employeeId, Long customerId, Integer status, Integer number, String prefix);
+    /*
+     public void standInService(Long branchId, Long serviceId, Long customerId, Integer number, String prefix);
 
-    public void kickCustomer(Long branchId, Long serviceId, Long customerId, Long employeeId);
+     public void kickCustomer(Long branchId, Long serviceId, Long customerId, Long employeeId);
 
-    public void inviteCustomer(Long branchId, Long customerId, Long serviceId, Long employeeId);
+     public void inviteCustomer(Long branchId, Long customerId, Long serviceId, Long employeeId);
 
-    public void inviteSecondary(Long branchId, Long customerId, Long serviceId, Long employeeId);
+     public void inviteSecondary(Long branchId, Long customerId, Long serviceId, Long employeeId);
 
-    public void startWorkWithCustomer(Long branchId, Long customerId, Long serviceId, Long employeeId);
+     public void startWorkWithCustomer(Long branchId, Long customerId, Long serviceId, Long employeeId);
 
-    public void customerToPostponed(Long branchId, Long customerId, Long employeeId);
+     public void customerToPostponed(Long branchId, Long customerId, Long employeeId);
 
-    public void redirectCustomer(Long branchId, Long customerId, Long employeeId, Long serviceId, Long newServiceId);
+     public void redirectCustomer(Long branchId, Long customerId, Long employeeId, Long serviceId, Long newServiceId);
 
-    public void finishWorkWithCustomer(Long branchId, Long customerId, Long employeeId);
+     public void finishWorkWithCustomer(Long branchId, Long customerId, Long employeeId);
 
-    public void startWorkSecondary(Long branchId, Long customerId, Long serviceId, Long employeeId);
+     public void startWorkSecondary(Long branchId, Long customerId, Long serviceId, Long employeeId);
 
-    public void backInService(Long branchId, Long customerId, Long employeeId, Long serviceId, Long newServiceId);
+     public void backInService(Long branchId, Long customerId, Long employeeId, Long serviceId, Long newServiceId);
+     */
 
     public void insertCustomer(Long branchId, Long serviceId, Long customerId, Long beforeCustId, Long afterCustId);
 

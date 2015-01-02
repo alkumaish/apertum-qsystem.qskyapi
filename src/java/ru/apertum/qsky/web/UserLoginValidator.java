@@ -5,6 +5,8 @@ import java.util.Map;
 import org.zkoss.bind.Property;
 import org.zkoss.bind.ValidationContext;
 import org.zkoss.bind.validator.AbstractValidator;
+import org.zkoss.zk.ui.Session;
+import org.zkoss.zk.ui.Sessions;
 
 public class UserLoginValidator extends AbstractValidator {
 
@@ -22,6 +24,9 @@ public class UserLoginValidator extends AbstractValidator {
 
     @Override
     public void validate(ValidationContext ctx) {
+        final Session sess = Sessions.getCurrent();
+        sess.removeAttribute("IS_DEMO");
+        
         //all the bean properties
         final Map<String, Property> beanProps = ctx.getProperties(ctx.getProperty().getBase());
         final String usrs = System.getProperty("QSKY_USERS", "admin=admin");
@@ -30,6 +35,9 @@ public class UserLoginValidator extends AbstractValidator {
         for (String s2 : ss) {
             final String[] usr = s2.split("=");
             if (usr.length == 2 && usr[0].equalsIgnoreCase((String) beanProps.get("name").getValue()) && usr[1].equalsIgnoreCase((String) beanProps.get("password").getValue())) {
+                if (usr[0].equalsIgnoreCase("demo")) {
+                    sess.setAttribute("IS_DEMO", true);
+                }
                 return;
             }
         }

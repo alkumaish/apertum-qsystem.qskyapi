@@ -4,8 +4,8 @@ import java.util.Date;
 
 public class User {
 
-    private String name = "1";
-    private String password = "1";
+    private String name = "";
+    private String password = "";
 
     public String getName() {
         return name;

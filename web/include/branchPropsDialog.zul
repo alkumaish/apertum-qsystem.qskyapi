@@ -27,7 +27,7 @@
 	]]></style>
     <window id="branchPropsDialog" 
             width="400px"
-            height="220px" 
+            height="260px" 
             border="normal"
             sclass="dialog"
             position="center,center" 
@@ -51,6 +51,11 @@
                         <row align="left">
                             <label value="Идентификатор" width="150px" />
                             <intbox id="idBranch" value="1" width="95%" tabindex="2"/>
+                        </row>
+                        
+                        <row align="left">
+                            <label value="Разница во времени" width="150px" />
+                            <intbox id="timeZone" value="1" width="95%" tabindex="3"/>
                         </row>
               
                     

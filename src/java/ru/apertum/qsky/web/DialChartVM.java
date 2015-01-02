@@ -6,62 +6,63 @@
 package ru.apertum.qsky.web;
 
 import java.awt.Color;
-import java.text.NumberFormat;
 import org.apache.commons.lang.StringUtils;
-import org.jfree.chart.plot.dial.StandardDialScale;
 import org.zkoss.bind.annotation.BindingParam;
 import org.zkoss.bind.annotation.GlobalCommand;
-import org.zkoss.bind.annotation.Init;
 import org.zkoss.zul.DialModel;
 import org.zkoss.zul.DialModelScale;
 
 public class DialChartVM {
 
-    DialModel celsiusModel;
-    DialModel fahrenheitModel;
+    DialModel customersModel;
+    DialModel waitingModel;
+    DialModel averageModel;
 
-    public DialModel getCelsiusModel() {
-        return celsiusModel;
+    public DialModel getCustomersModel() {
+        return customersModel;
     }
 
-    public DialModel getFahrenheitModel() {
-        return fahrenheitModel;
+    public DialModel getWaitingModel() {
+        return waitingModel;
     }
 
-    @Init
-    public void init() {
-        int celsius = 27;
-        celsiusModel = ChartData.createCelsiusModel(celsius);
-        fahrenheitModel = ChartData.createFahrenheitModel(ChartData.toFahrenhit(celsius));
+    public DialModel getAverageModel() {
+        return averageModel;
+    }
+
+    public DialChartVM() {
+        customersModel = ChartData.createCustomersModel(0);
+        waitingModel = ChartData.createWaitingModel(0);
+        averageModel = ChartData.createAverageModel(0);
     }
 
     @GlobalCommand("configChanged")
     public void onConfigChanged(@BindingParam("isCelsius") boolean isCelsius, @BindingParam("degree") int degree) {
         if (isCelsius) {
-            celsiusModel.getScale(0).setValue(degree);
-            fahrenheitModel.getScale(0).setValue(ChartData.toFahrenhit(degree));
-           // ((StandardDialScale) celsiusModel.getScale(0)).setTickLabelFormatter(NumberFormat.getIntegerInstance());
+            customersModel.getScale(0).setValue(degree);
+            waitingModel.getScale(0).setValue(ChartData.toFahrenhit(degree));
+            // ((StandardDialScale) celsiusModel.getScale(0)).setTickLabelFormatter(NumberFormat.getIntegerInstance());
         } else {
-            celsiusModel.getScale(0).setValue(ChartData.toCelsius(degree));
-            fahrenheitModel.getScale(0).setValue(degree);
+            customersModel.getScale(0).setValue(ChartData.toCelsius(degree));
+            waitingModel.getScale(0).setValue(degree);
         }
     }
 
     private static class ChartData {
 
-        public static DialModel createCelsiusModel(int value) {
+        public static DialModel createCustomersModel(int value) {
             DialModel model = new DialModel();
-            DialModelScale scale = model.newScale(-10.0, 60.0, 230, -280, 10.0, 4);
+            DialModelScale scale = model.newScale(0, 35, 230, -280, 5, 4);
             //scale's configuration data
             scale.setValue(value);
             scale.setText("Посетители");
-            scale.newRange(-10, 0, ChartColors.toHtmlColor(Color.getHSBColor(0.55f, 0.8f, 1)), 0.61, 0.603);
-            scale.newRange(0, 10, ChartColors.toHtmlColor(Color.getHSBColor(0.3f, 0.8f, 1)), 0.61, 0.603);
-            scale.newRange(10, 20, ChartColors.toHtmlColor(Color.getHSBColor(0.18f, 0.8f, 1)), 0.61, 0.603);
-            scale.newRange(20, 30, ChartColors.toHtmlColor(Color.getHSBColor(0.12f, 0.8f, 1)), 0.61, 0.603);
-            scale.newRange(30, 40, ChartColors.toHtmlColor(Color.getHSBColor(0.08f, 0.8f, 1)), 0.61, 0.603);
-            scale.newRange(40, 50, ChartColors.toHtmlColor(Color.getHSBColor(0.05f, 0.8f, 1)), 0.61, 0.603);
-            scale.newRange(50, 60, ChartColors.toHtmlColor(Color.getHSBColor(0.0f, 0.8f, 1)), 0.61, 0.603);
+            scale.newRange(0, 5, ChartColors.toHtmlColor(Color.getHSBColor(0.55f, 0.8f, 1)), 0.61, 0.603);
+            scale.newRange(5, 10, ChartColors.toHtmlColor(Color.getHSBColor(0.3f, 0.8f, 1)), 0.61, 0.603);
+            scale.newRange(10, 15, ChartColors.toHtmlColor(Color.getHSBColor(0.18f, 0.8f, 1)), 0.61, 0.603);
+            scale.newRange(15, 20, ChartColors.toHtmlColor(Color.getHSBColor(0.12f, 0.8f, 1)), 0.61, 0.603);
+            scale.newRange(20, 25, ChartColors.toHtmlColor(Color.getHSBColor(0.08f, 0.8f, 1)), 0.61, 0.603);
+            scale.newRange(25, 30, ChartColors.toHtmlColor(Color.getHSBColor(0.05f, 0.8f, 1)), 0.61, 0.603);
+            scale.newRange(30, 35, ChartColors.toHtmlColor(Color.getHSBColor(0.0f, 0.8f, 1)), 0.61, 0.603);
             scale.setTickColor("#FFFFFF");
             scale.setNeedleType("pin");
             scale.setNeedleColor("#FF0000");
@@ -79,20 +80,20 @@ public class DialChartVM {
             return model;
         }
 
-        public static DialModel createFahrenheitModel(int value) {
+        public static DialModel createWaitingModel(int value) {
             DialModel model = new DialModel();
-            DialModelScale scale = model.newScale(14, 140.0, 230, -280, 18.0, 8);
+            DialModelScale scale = model.newScale(0, 70, 230, -280, 10, 9);
 
             //scale's configuration data
             scale.setValue(value);
             scale.setText("Ожидание");
-            scale.newRange(14, 32, ChartColors.toHtmlColor(Color.getHSBColor(0.55f, 0.8f, 1)), 0.91, 0.903);
-            scale.newRange(32, 50, ChartColors.toHtmlColor(Color.getHSBColor(0.3f, 0.8f, 1)), 0.91, 0.903);
-            scale.newRange(50, 68, ChartColors.toHtmlColor(Color.getHSBColor(0.18f, 0.8f, 1)), 0.91, 0.903);
-            scale.newRange(68, 86, ChartColors.toHtmlColor(Color.getHSBColor(0.12f, 0.8f, 1)), 0.91, 0.903);
-            scale.newRange(86, 104, ChartColors.toHtmlColor(Color.getHSBColor(0.08f, 0.8f, 1)), 0.91, 0.903);
-            scale.newRange(104, 122, ChartColors.toHtmlColor(Color.getHSBColor(0.05f, 0.8f, 1)), 0.91, 0.903);
-            scale.newRange(122, 140, ChartColors.toHtmlColor(Color.getHSBColor(0.0f, 0.8f, 1)), 0.91, 0.903);
+            scale.newRange(0, 10, ChartColors.toHtmlColor(Color.getHSBColor(0.55f, 0.8f, 1)), 0.91, 0.903);
+            scale.newRange(10, 20, ChartColors.toHtmlColor(Color.getHSBColor(0.3f, 0.8f, 1)), 0.91, 0.903);
+            scale.newRange(20, 30, ChartColors.toHtmlColor(Color.getHSBColor(0.18f, 0.8f, 1)), 0.91, 0.903);
+            scale.newRange(30, 40, ChartColors.toHtmlColor(Color.getHSBColor(0.12f, 0.8f, 1)), 0.91, 0.903);
+            scale.newRange(40, 50, ChartColors.toHtmlColor(Color.getHSBColor(0.08f, 0.8f, 1)), 0.91, 0.903);
+            scale.newRange(50, 60, ChartColors.toHtmlColor(Color.getHSBColor(0.05f, 0.8f, 1)), 0.91, 0.903);
+            scale.newRange(60, 70, ChartColors.toHtmlColor(Color.getHSBColor(0.0f, 0.8f, 1)), 0.91, 0.903);
             scale.setTickColor("#000000");
             scale.setNeedleColor("#FF0000");
 
@@ -103,6 +104,35 @@ public class DialChartVM {
             model.setFrameBgColor2("#FFFFFF");
 
             model.setCapRadius(0.06);
+
+            model.setGradientDirection("vertical");
+
+            return model;
+        }
+
+        public static DialModel createAverageModel(int value) {
+            DialModel model = new DialModel();
+            DialModelScale scale = model.newScale(0, 56, 230, -280, 8, 3);
+            scale.setTickLabelOffset(0.2);
+            scale.setText("Среднее");
+            scale.newRange(0, 8, ChartColors.toHtmlColor(Color.getHSBColor(0.55f, 0.8f, 1)), 0.91, 0.45);
+            scale.newRange(8, 16, ChartColors.toHtmlColor(Color.getHSBColor(0.3f, 0.8f, 1)), 0.91, 0.45);
+            scale.newRange(16, 24, ChartColors.toHtmlColor(Color.getHSBColor(0.18f, 0.8f, 1)), 0.91, 0.45);
+            scale.newRange(24, 32, ChartColors.toHtmlColor(Color.getHSBColor(0.12f, 0.8f, 1)), 0.91, 0.45);
+            scale.newRange(32, 40, ChartColors.toHtmlColor(Color.getHSBColor(0.08f, 0.8f, 1)), 0.91, 0.45);
+            scale.newRange(40, 48, ChartColors.toHtmlColor(Color.getHSBColor(0.05f, 0.8f, 1)), 0.91, 0.45);
+            scale.newRange(48, 56, ChartColors.toHtmlColor(Color.getHSBColor(0.0f, 0.8f, 1)), 0.91, 0.45);
+            scale.setTickColor("#FF0000");
+            scale.setNeedleType("pin");
+            scale.setNeedleColor("#FF0000");
+
+            model.setFrameFgColor("#FFFFFF");
+            model.setFrameBgAlpha(255);
+            model.setFrameBgColor("#EEEEEE");
+            model.setFrameBgColor1("#CCCCCC");
+            model.setFrameBgColor2("#CCCCCC");
+
+            model.setCapRadius(0.14);
 
             model.setGradientDirection("vertical");
 
