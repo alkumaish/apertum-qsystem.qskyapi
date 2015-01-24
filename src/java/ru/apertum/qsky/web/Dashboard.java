@@ -7,14 +7,15 @@ package ru.apertum.qsky.web;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.function.Predicate;
@@ -26,8 +27,11 @@ import org.zkoss.bind.annotation.AfterCompose;
 import org.zkoss.bind.annotation.Command;
 import org.zkoss.bind.annotation.ContextParam;
 import org.zkoss.bind.annotation.ContextType;
+import org.zkoss.bind.annotation.Init;
 import org.zkoss.bind.annotation.NotifyChange;
+import org.zkoss.util.resource.Labels;
 import org.zkoss.zk.ui.Component;
+import org.zkoss.zk.ui.Executions;
 import org.zkoss.zk.ui.Sessions;
 import org.zkoss.zk.ui.event.DropEvent;
 import org.zkoss.zk.ui.event.Event;
@@ -71,6 +75,36 @@ import ru.apertum.qsky.model.Step;
  */
 public class Dashboard {
 
+    public String l(String resName) {
+        return Labels.getLabel(resName);
+    }
+
+    @Init
+    public void init() {
+        final org.zkoss.zk.ui.Session sess = Sessions.getCurrent();
+
+        if (sess.getAttribute(org.zkoss.web.Attributes.PREFERRED_LOCALE) == null && Executions.getCurrent().getHeader("accept-language") != null && !Executions.getCurrent().getHeader("accept-language").isEmpty()) {
+            final String ln = Executions.getCurrent().getHeader("accept-language").replace("-", "_").split(",")[0];
+            if (langs.contains(ln)) {
+                lang = ln;
+            } else {
+                lang = "en_GB";
+            }
+            final Locale prefer_locale = lang.length() > 2
+                    ? new Locale(lang.substring(0, 2), lang.substring(3)) : new Locale(lang);
+            sess.setAttribute(org.zkoss.web.Attributes.PREFERRED_LOCALE, prefer_locale);
+        } else {
+            lang = ((Locale) sess.getAttribute(org.zkoss.web.Attributes.PREFERRED_LOCALE)).getLanguage() + "_" + ((Locale) sess.getAttribute(org.zkoss.web.Attributes.PREFERRED_LOCALE)).getCountry();
+            if (!langs.contains(lang)) {
+                lang = "en_GB";
+                final Locale prefer_locale = lang.length() > 2
+                        ? new Locale(lang.substring(0, 2), lang.substring(3)) : new Locale(lang);
+                sess.setAttribute(org.zkoss.web.Attributes.PREFERRED_LOCALE, prefer_locale);
+            }
+        }
+
+    }
+
     @Command
     public void about() {
         final Properties settings = new Properties();
@@ -87,17 +121,50 @@ public class Dashboard {
                 "QMS Apertum-QSystem", Messagebox.OK, Messagebox.INFORMATION);
     }
 
-    private boolean isDemo = false;
+    private User user;
 
     @AfterCompose
     public void afterCompose(@ContextParam(ContextType.VIEW) Component view) {
         final org.zkoss.zk.ui.Session sess = Sessions.getCurrent();
-        isDemo = sess.getAttribute("IS_DEMO") == null ? false : (boolean) sess.getAttribute("IS_DEMO");
+        user = (User) Sessions.getCurrent().getAttribute("USER");
 
         Selectors.wireComponents(view, this, false);
         Selectors.wireEventListeners(view, this);
         doAfterCompose(null);
     }
+
+    //*****************************************************
+    //**** Multilingual
+    //*****************************************************
+    private static final ArrayList<String> langs = new ArrayList<>(Arrays.asList("ru_RU", "en_GB", "es_ES", "de_DE", "pt_PT", "fr_FR", "it_IT", "cs_CZ", "pl_PL", "sk_SK", "ro_RO", "sr_SP", "uk_UA", "tr_TR", "hi_IN", "ar_EG", "iw_IL", "kk_KZ", "in_ID", "fi_FI"));
+
+    public ArrayList<String> getLangs() {
+        return langs;
+    }
+    private String lang;
+
+    public String getLang() {
+        return lang;
+    }
+
+    public void setLang(String lang) {
+        this.lang = lang;
+    }
+
+    @Command("changeLang")
+    public void changeLang() {
+        if (lang != null) {
+            final org.zkoss.zk.ui.Session session = Sessions.getCurrent();
+            final Locale prefer_locale = lang.length() > 2
+                    ? new Locale(lang.substring(0, 2), lang.substring(3)) : new Locale(lang);
+            session.setAttribute(org.zkoss.web.Attributes.PREFERRED_LOCALE, prefer_locale);
+            Executions.sendRedirect(null);
+        }
+    }
+    //**** Multilingual
+    ////////////**************************************************
+    ////////////**************************************************
+    ////////////**************************************************
 
     private static final long serialVersionUID = 3814570327995355261L;
 
@@ -115,7 +182,7 @@ public class Dashboard {
     //  @Override
     public void doAfterCompose(Component comp)/* throws Exception*/ {
         // super.doAfterCompose(comp);
-        contactTreeModel = new AdvancedTreeModel(new BranchTreeModel().getRoot());
+        contactTreeModel = new AdvancedTreeModel(new BranchTreeModel(user).getRoot());
 
         tree.setItemRenderer(new ContactTreeRenderer());
         tree.setModel(contactTreeModel);
@@ -184,15 +251,16 @@ public class Dashboard {
             // Both category row and contact row can be item dropped
             dataRow.setDroppable("true");
             dataRow.addEventListener(Events.ON_DROP, (Event event) -> {
-                if (isDemo) {
-                    return;
-                }
                 // The dragged target is a TreeRow belongs to an
                 // Treechildren of TreeItem.
                 final Treeitem draggedItem = (Treeitem) ((DropEvent) event).getDragged().getParent();
                 final BranchTreeNode draggedValue = (BranchTreeNode) draggedItem.getValue();
                 //System.out.println("--------------------------START draggedValue " + draggedValue.getData().getId() + " to " + ((BranchTreeNode) treeItem.getValue()).getData().getId());
 
+                // разрешение переносить корневые ветки
+                if (draggedValue.getData().getParent() == null && !user.getBranches().isEmpty()) {
+                    return;
+                }
                 if (!draggedValue.isParentOf((BranchTreeNode) treeItem.getValue())) {// не в свою ветку
 
                     if (draggedValue.getData().getParent() == null
@@ -201,22 +269,25 @@ public class Dashboard {
                         contactTreeModel.remove(draggedValue);
                         contactTreeModel.add((BranchTreeNode) treeItem.getValue(), new BranchTreeNode[]{draggedValue});
 
-                        boolean remove = draggedValue.getData().getParent() == null ? true : draggedValue.getData().getParent().getChildren().remove(draggedValue.getData());
+                        final boolean remove = draggedValue.getData().getParent() == null ? true : draggedValue.getData().getParent().getChildren().remove(draggedValue.getData());
                         if (!remove) {
+                            //System.out.println("--------------- "+draggedValue.getData().getParent() + " -- " + draggedValue.getData() + " - " + draggedValue.getData().getParent()..getChildren().);
                             throw new RuntimeException("Not delete the child ");
                         }
                         draggedValue.getData().setParent(((BranchTreeNode) treeItem.getValue()).getData());
                         ((BranchTreeNode) treeItem.getValue()).getData().getChildren().add(draggedValue.getData());
 
-                        final Session ses = getHib().cs();
-                        ses.beginTransaction();
+                        final Session ses = getHib().openSession();
                         try {
+                            ses.beginTransaction();
                             ses.saveOrUpdate(((BranchTreeNode) treeItem.getValue()).getData());
                             ses.saveOrUpdate(draggedValue.getData());
                             ses.getTransaction().commit();
                         } catch (Exception ex) {
                             ses.getTransaction().rollback();
                             throw new RuntimeException("Not updated the tree ");
+                        } finally {
+                            ses.close();
                         }
 
                     }
@@ -229,52 +300,64 @@ public class Dashboard {
 
     @Command
     public void addBranch() {
-        if (isDemo) {
+        if (tree.getSelectedItem() == null && !user.getBranches().isEmpty()) {
             return;
         }
         final long l = new Date().getTime() % 10000;
         Branch br = new Branch("New branch " + l);
         br.setBranchId(l);
-        final Session ses = getHib().cs();
-        ses.beginTransaction();
+
+        if (user.getBranches().isEmpty()) {
+            ((BranchTreeNode) tree.getModel().getRoot()).insert(new BranchTreeNode(br), 0);
+        } else {
+            br.setParent(((BranchTreeNode) tree.getSelectedItem().getValue()).getData());
+            ((BranchTreeNode) tree.getSelectedItem().getValue()).getData().getChildren().add(br);
+            final BranchTreeNode node = new BranchTreeNode(br);
+
+            ((BranchTreeNode) tree.getSelectedItem().getValue()).add(node);
+        }
+
+        final Session ses = getHib().openSession();
         try {
+            ses.beginTransaction();
             ses.save(br);
             ses.getTransaction().commit();
         } catch (Exception ex) {
             ses.getTransaction().rollback();
             throw new RuntimeException("Not created the new branch " + ex);
+        } finally {
+            ses.close();
         }
-        ((BranchTreeNode) tree.getModel().getRoot()).insert(new BranchTreeNode(br), 0);
+
     }
 
     @Command
     public void removeBranch() {
-        if (isDemo) {
-            return;
-        }
         if (tree.getSelectedItem() != null) {
+            if (((BranchTreeNode) tree.getSelectedItem().getValue()).getParent().getData() == null && !user.getBranches().isEmpty()) {
+                return;
+            }
             if (((BranchTreeNode) tree.getSelectedItem().getValue()).getChildCount() != 0) {
-                Messagebox.show("У филиала есть подчиненные. Удалите или перенечите их перед удалением.", "Удаление не возможно", Messagebox.OK, Messagebox.ERROR);
+                Messagebox.show(l("mess_del_branch_not_empty_tree"), l("del_impossible"), Messagebox.OK, Messagebox.ERROR);
                 return;
             }
             final Branch br = ((BranchTreeNode) tree.getSelectedItem().getValue()).getData();
-            Messagebox.show("Вы уверены что хотите удалить филиал \"" + br + "\"?", "Удаление", Messagebox.OK | Messagebox.CANCEL, Messagebox.QUESTION, (Event evt) -> {
+            Messagebox.show(l("shure_del_branch") + " \"" + br + "\"?", l("removing"), Messagebox.OK | Messagebox.CANCEL, Messagebox.QUESTION, (Event evt) -> {
                 if (evt.getName().equals("onOK")) {
-
-                    System.out.println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ "
-                            + ((BranchTreeNode) tree.getSelectedItem().getValue()).getData().getName() + " id=" + ((BranchTreeNode) tree.getSelectedItem().getValue()).getData().getId());
 
                     if (br.getParent() != null && !br.getParent().getChildren().remove(br)) {
                         throw new RuntimeException("Not delete the child ");
                     }
-                    final Session ses = getHib().cs();
-                    ses.beginTransaction();
+                    final Session ses = getHib().openSession();
                     try {
+                        ses.beginTransaction();
                         ses.delete(br);
                         ses.getTransaction().commit();
                     } catch (Exception ex) {
                         ses.getTransaction().rollback();
                         throw new RuntimeException("Not deleted the branch " + ex);
+                    } finally {
+                        ses.close();
                     }
                     ((BranchTreeNode) tree.getSelectedItem().getValue()).getParent().remove(((BranchTreeNode) tree.getSelectedItem().getValue()));
                 }
@@ -284,10 +367,6 @@ public class Dashboard {
 
     @Command
     public void closeBranchPropsDialog() {
-        if (isDemo) {
-            branchPropsDialog.setVisible(false);
-            return;
-        }
         if (tree.getSelectedItem() != null) {
             BranchTreeNode br_node = (BranchTreeNode) tree.getSelectedItem().getValue();
             Branch br = ((BranchTreeNode) tree.getSelectedItem().getValue()).getData();
@@ -297,14 +376,16 @@ public class Dashboard {
             br.setBranchId(((Intbox) branchPropsDialog.getFellow("idBranch")).getValue().longValue());
             br.setTimeZone(((Intbox) branchPropsDialog.getFellow("timeZone")).getValue());
 
-            final Session ses = getHib().cs();
-            ses.beginTransaction();
+            final Session ses = getHib().openSession();
             try {
+                ses.beginTransaction();
                 ses.saveOrUpdate(br);
                 ses.getTransaction().commit();
             } catch (Exception ex) {
                 ses.getTransaction().rollback();
                 throw new RuntimeException("Not saved the branch " + ex);
+            } finally {
+                ses.close();
             }
 
             final int[] ii1 = contactTreeModel.getPath(br_node);
@@ -386,11 +467,10 @@ public class Dashboard {
         if (selectedBranch == null) {
             return;
         }
-        final Session ses = getHib().cs();
-        ses.beginTransaction();
+        final Session ses = getHib().openSession();
         final List<Customer> custs;
         try {
-
+            ses.beginTransaction();
             final GregorianCalendar day = new GregorianCalendar();
             day.set(GregorianCalendar.HOUR_OF_DAY, 0);
             day.set(GregorianCalendar.MINUTE, 0);
@@ -405,6 +485,7 @@ public class Dashboard {
             throw new RuntimeException("Not loaded a list of customers. " + ex);
         } finally {
             ses.getTransaction().rollback();
+            ses.close();
         }
 
         final Predicate<? super Customer> filter = (cust) -> {
@@ -499,13 +580,21 @@ public class Dashboard {
         if (selectedBranch == null) {
             return;
         }
-        final List<Step> stst = statVM.loadStats(selectedBranch.getBranchId(), getHib().cs());
+        final List<Step> stst;
+        final Session ses = getHib().openSession();
+        try {
+            stst = statVM.loadStats(selectedBranch.getBranchId(), ses);
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
+        } finally {
+            ses.close();
+        }
         GroupsModelArray mo = statVM.getRegim() == 0
                 ? new StatisticViewModel.StaticticGroupingEmplsModel(statVM.prepareDataByUser(stst), new StatisticViewModel.RecordEmployeeComparator())
                 : new StatisticViewModel.StaticticGroupingServsModel(statVM.prepareDataByUser(stst), new StatisticViewModel.RecordServiceComparator());
         statVM.setStatisticModel(mo);
         statisticGrid.setModel(mo);
-        footer_category.setLabel((statVM.getRegim() == 0 ? "Количество операторов, оказывающих услуги : " : "Количество оказываемых услуг : ") + mo.getGroupCount());
+        footer_category.setLabel((statVM.getRegim() == 0 ? l("amount_users") + " : " : l("amount_services") + " : ") + mo.getGroupCount());
     }
 
     @Command("downloadBranchStatistic")
@@ -513,10 +602,10 @@ public class Dashboard {
         if (selectedBranch == null) {
             return;
         }
-        final Session ses = getHib().cs();
-        ses.beginTransaction();
+        final Session ses = getHib().openSession();
         final List<Customer> custs;
         try {
+            ses.beginTransaction();
             final GregorianCalendar day = new GregorianCalendar();
             day.setTime(statVM.getStart());
             day.set(GregorianCalendar.HOUR_OF_DAY, 0);
@@ -533,8 +622,10 @@ public class Dashboard {
             throw new RuntimeException("Not loaded a list of customers. " + ex);
         } finally {
             ses.getTransaction().rollback();
+            ses.close();
         }
-        final StringBuffer sb = new StringBuffer("№;Филиал;Услуга;Персонал;Клиент;Встал;Начало;Завершение;Ожидание;Работа;Статус1;Статус2;\n");
+        final StringBuffer sb;
+        sb = new StringBuffer(l("captions_csv") + "\n");
         int nom = 0;
         for (Customer cust : custs) {
             Step step = cust.getFirstStep();
@@ -545,7 +636,7 @@ public class Dashboard {
                 sb.append(Dicts.getInstance().getEmployeeName(selectedBranch.getBranchId(), step.getEmployeeId())).append(";");
                 sb.append(cust.getPrefix()).append(cust.getNumber()).append(";");
                 sb.append(SimpleDateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(step.getStandTime())).append(";");
-                if (step.getFinishState() == 0) {
+                if (step.getFinishState() == null || step.getFinishState() == 0) {
                     sb.append(";;;;");
                 } else {
                     sb.append(SimpleDateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(step.getStartTime())).append(";");
@@ -554,15 +645,12 @@ public class Dashboard {
                     sb.append(step.getWorking() / 1000 / 60).append(";");
                 }
                 sb.append(step.getStartState()).append(";");
-                sb.append(step.getFinishState()).append(";");
+                sb.append(step.getFinishState() == null ? "" : step.getFinishState()).append(";");
                 step = step.getAfter();
                 sb.append("\n");
             }
         }
-        try {
-            Filedownload.save(sb.toString().getBytes("cp1251"), "text/csv", "qstat_" + SimpleDateFormat.getDateInstance().format(statVM.getStart()) + "-" + SimpleDateFormat.getDateInstance().format(statVM.getFinish()) + ".csv");
-        } catch (UnsupportedEncodingException ex) {
-        }
+        Filedownload.save(sb.toString().getBytes(), "text/csv", "qstat_" + SimpleDateFormat.getDateInstance().format(statVM.getStart()) + "-" + SimpleDateFormat.getDateInstance().format(statVM.getFinish()) + ".csv");
         sb.setLength(0);
     }
 

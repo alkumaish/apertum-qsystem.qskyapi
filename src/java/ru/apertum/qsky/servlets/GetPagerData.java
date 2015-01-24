@@ -10,7 +10,6 @@ import com.google.gson.annotations.SerializedName;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import javax.ejb.EJB;
 import javax.servlet.ServletException;
@@ -49,8 +48,8 @@ public class GetPagerData extends HttpServlet {
             /* TODO output your page here. You may use following sample code. */
 
             final Gson g = GsonPool.getInstance().borrowGson();
+            final Session ses = hib.openSession();
             try {
-                final Session ses = hib.cs();
                 ses.beginTransaction();
                 final Query query = ses.getNamedQuery("PagerData.findByActive");
                 query.setBoolean("active", true);
@@ -77,11 +76,12 @@ public class GetPagerData extends HttpServlet {
                 if (f) {
                     final PagerResults pagerResults = new PagerResults(request.getRemoteAddr(), Uses.getNow(), request.getParameter("qsysver"));
                     ses.save(pagerResults);
-                    hib.cs().getTransaction().commit();
+                    ses.getTransaction().commit();
                 } else {
-                    hib.cs().getTransaction().rollback();
+                    ses.getTransaction().rollback();
                 }
             } finally {
+                ses.close();
                 GsonPool.getInstance().returnGson(g);
             }
         }

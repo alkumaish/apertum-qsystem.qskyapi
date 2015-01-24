@@ -1,11 +1,19 @@
 package ru.apertum.qsky.web;
 
-import java.util.Date;
+import java.util.ArrayList;
 
 public class User {
 
-    private String name = "";
-    private String password = "";
+    public User() {
+    }
+
+    public User(String name, String password) {
+        this.name = name;
+        this.password = password;
+    }
+
+    private String name = "demo";
+    private String password = "demo";
 
     public String getName() {
         return name;
@@ -22,22 +30,23 @@ public class User {
     public void setPassword(String password) {
         this.password = password;
     }
-    private Date start;
-    private Date finish;
 
-    public Date getStart() {
-        return start;
+    private ArrayList<Long> branches = new ArrayList<>();
+
+    public ArrayList<Long> getBranches() {
+        return branches;
     }
 
-    public void setStart(Date start) {
-        this.start = start;
+    public void setBranches(ArrayList<Long> branches) {
+        this.branches = branches;
+    }
+    
+    public void addBranch(Long branchId){
+        branches.add(branchId);
     }
 
-    public Date getFinish() {
-        return finish;
+    public boolean permition(Long branchId) {
+        return branches.isEmpty() || branches.contains(branchId);
     }
 
-    public void setFinish(Date finish) {
-        this.finish = finish;
-    }
 }

@@ -50,16 +50,17 @@ public class Dicts {
         final long now = new Date().getTime();
         if (now - time > 1000 * 5 || servs == null || empls == null) {
 
-            final Session ses = getHib().cs();
-            ses.beginTransaction();
+            final Session ses = getHib().openSession();
             try {
+                ses.beginTransaction();
                 servs = ses.createCriteria(Service.class).list();
                 empls = ses.createCriteria(Employee.class).list();
                 time = now;
             } catch (Exception ex) {
-                throw new RuntimeException("Not loaded a list of customers. " + ex);
+                System.err.println("Not loaded a list of dicts. " + ex);
             } finally {
                 ses.getTransaction().rollback();
+                ses.close();
             }
         }
     }
@@ -71,7 +72,7 @@ public class Dicts {
                 return serv.getName();
             }
         }
-        return serviceId.toString();
+        return serviceId == null ? "" : serviceId.toString();
     }
 
     public String getEmployeeName(Long branchId, Long employeeId) {
@@ -81,7 +82,7 @@ public class Dicts {
                 return empl.getName();
             }
         }
-        return employeeId.toString();
+        return employeeId == null ? "" : employeeId.toString();
     }
 
 }

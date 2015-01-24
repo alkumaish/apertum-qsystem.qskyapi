@@ -19,12 +19,17 @@ import org.apache.commons.lang.StringUtils;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.plot.DefaultDrawingSupplier;
 import org.jfree.chart.plot.PiePlot;
+import org.zkoss.util.resource.Labels;
 import org.zkoss.zkex.zul.impl.JFreeChartEngine;
 import org.zkoss.zul.Chart;
 
 import org.zkoss.zul.SimplePieModel;
 
 public class PieChartVM {
+    
+    public static String l(String resName) {
+        return Labels.getLabel(resName);
+    }
 
     private final PieChartEngine engine;
     PieModel model;
@@ -80,7 +85,7 @@ public class PieChartVM {
 
             piePlot.setSectionOutlinesVisible(false);
 
-            piePlot.setExplodePercent("Обновите данные", explode ? 0.2 : 0);
+            piePlot.setExplodePercent(l("refresh_data"), explode ? 0.2 : 0);
 
             return false;
         }
@@ -94,7 +99,7 @@ public class PieChartVM {
 
         public static PieModel getModel() {
             PieModel model = new SimplePieModel();
-            model.setValue("Обновите данные", 100);
+            model.setValue(l("refresh_data"), 100);
             return model;
         }
     }

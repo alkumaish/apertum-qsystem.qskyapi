@@ -1,4 +1,6 @@
 <zk xmlns="http://www.zkoss.org/2005/zul">
+    <?taglib uri="http://www.zkoss.org/dsp/web/core" prefix="c"?>
+
     <style><![CDATA[
 		.dialog .msg .z-label {
 		  font-weight: bold;
@@ -39,22 +41,22 @@
             <center border="none" flex="true">
                 <grid height="100%" width="100%" >
                     <columns>
-                        <column label="Параметер" width="30%" />
-                        <column label="Значение" width="70%"/>
+                        <column label="${c:l('param')}" width="30%" />
+                        <column label="${c:l('value')}" width="70%"/>
                     </columns>
                     <rows>
                         <row align="left">
-                            <label value="Название" width="150px" />
+                            <label value="${c:l('name')}" width="150px" />
                             <textbox  id="nameBranch" value="1"  width="95%" tabindex="1" />
                         </row>
                     
                         <row align="left">
-                            <label value="Идентификатор" width="150px" />
+                            <label value="${c:l('id')}" width="150px" />
                             <intbox id="idBranch" value="1" width="95%" tabindex="2"/>
                         </row>
                         
                         <row align="left">
-                            <label value="Разница во времени" width="150px" />
+                            <label value="${c:l('time_diff')}" width="150px" />
                             <intbox id="timeZone" value="1" width="95%" tabindex="3"/>
                         </row>
               
@@ -64,8 +66,8 @@
             </center>
             <south size="50px" border="none" flex="true">
                 <toolbar style="padding: 10px;" align="center">
-                    <button label="Сохранить" width="100px" height="30px" onClick="@command('closeBranchPropsDialog')"/>
-                    <button id="closeBtn" label="Закрыть" width="100px" height="30px" onClick="branchPropsDialog.setVisible(false);" />
+                    <button label="${c:l('save')}" width="100px" height="30px" onClick="@command('closeBranchPropsDialog')"/>
+                    <button id="closeBtn" label="${c:l('close')}" width="100px" height="30px" onClick="branchPropsDialog.setVisible(false);" />
                 </toolbar>	
             </south>
         </borderlayout>

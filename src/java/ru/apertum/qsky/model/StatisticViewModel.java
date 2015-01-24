@@ -13,6 +13,7 @@ import java.util.GregorianCalendar;
 import java.util.List;
 import org.hibernate.Session;
 import org.hibernate.criterion.Restrictions;
+import org.zkoss.util.resource.Labels;
 import org.zkoss.zul.GroupComparator;
 import org.zkoss.zul.GroupsModelArray;
 
@@ -112,7 +113,9 @@ public class StatisticViewModel {
 
     public static class StaticticGroupingServsModel extends GroupsModelArray<Record, String, String, Object> {
 
-        private static final String footerString = "Количество операторов оказывающих услугу: %d";
+        public String l(String resName) {
+            return Labels.getLabel(resName);
+        }
 
         public StaticticGroupingServsModel(List<Record> data, Comparator<Record> cmpr) {
             super(data.toArray(new Record[data.size()]), cmpr);
@@ -128,16 +131,16 @@ public class StatisticViewModel {
                 removed = removed + rec.removed;
                 avgMin = avgMin + rec.avgMin;
             }
-            return groupdata.length == 0 ? "Пустая группа"
-                    : "Услуга " + "\"" + (groupdata[0].serviceName.length() > 30 ? groupdata[0].serviceName.substring(0, 30) + "..." : groupdata[0].serviceName) + "\""
-                    + " обслужено " + served
-                    + ", отклонено " + removed
-                    + ", среднее время работы " + (avgMin / groupdata.length);
+            return groupdata.length == 0 ? l("empty_group")
+                    : l("service") + " " + "\"" + (groupdata[0].serviceName.length() > 30 ? groupdata[0].serviceName.substring(0, 30) + "..." : groupdata[0].serviceName) + "\""
+                    + " " + l("served2") + " " + served
+                    + ", " + l("killed2") + " " + removed
+                    + ", " + l("avd_working") + " " + (avgMin / groupdata.length);
         }
 
         @Override
         protected String createGroupFoot(Record[] groupdata, int index, int col) {
-            return String.format(footerString, groupdata.length);
+            return String.format(l("amount_users_for_1service") + ": %d", groupdata.length);
         }
 
         @Override
@@ -148,7 +151,9 @@ public class StatisticViewModel {
 
     public static class StaticticGroupingEmplsModel extends GroupsModelArray<Record, String, String, Object> {
 
-        private static final String footerString = "Оказывались услуги в количестве: %d";
+        public String l(String resName) {
+            return Labels.getLabel(resName);
+        }
 
         public StaticticGroupingEmplsModel(List<Record> data, Comparator<Record> cmpr) {
             super(data.toArray(new Record[data.size()]), cmpr);
@@ -164,16 +169,16 @@ public class StatisticViewModel {
                 removed = removed + rec.removed;
                 avgMin = avgMin + rec.avgMin;
             }
-            return groupdata.length == 0 ? "Пустая группа"
-                    : "Оператор " + "\"" + groupdata[0].employeeName + "\""
-                    + " обслужено " + served
-                    + ", отклонено " + removed
-                    + ", среднее время работы " + (avgMin / groupdata.length);
+            return groupdata.length == 0 ? l("empty_group")
+                    : l("employee") + " " + "\"" + groupdata[0].employeeName + "\""
+                    + " " + l("served2") + " " + served
+                    + ", " + l("killed2") + " " + removed
+                    + ", " + l("avd_working") + " " + (avgMin / groupdata.length);
         }
 
         @Override
         protected String createGroupFoot(Record[] groupdata, int index, int col) {
-            return String.format(footerString, groupdata.length);
+            return String.format(l("served_in_amount") + ": %d", groupdata.length);
         }
 
         @Override

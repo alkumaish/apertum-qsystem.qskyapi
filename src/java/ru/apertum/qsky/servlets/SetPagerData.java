@@ -15,6 +15,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.net.BCodec;
+import org.hibernate.HibernateException;
 import org.hibernate.Query;
 import org.hibernate.Session;
 import ru.apertum.qsky.common.Uses;
@@ -52,27 +53,33 @@ public class SetPagerData extends HttpServlet {
         } catch (DecoderException | UnsupportedEncodingException ex) {
         }
 
-        Session ses = hib.cs();
-        ses.beginTransaction();
-        final Query query = ses.getNamedQuery("PagerData.findById");
-        query.setLong("id", Long.parseLong(request.getParameter("dataid")));
-        List data = query.list();
-        if (data.size() == 1) {
-            PagerData pd = (PagerData) data.get(0);
-            pagerResults.setPagerDataId((PagerData) data.get(0));
-            if (request.getParameter("quizid") != null) {
-                long qid = Long.parseLong(request.getParameter("quizid"));
-                for (PagerQuizItems qitem : pd.getPagerQuizItemsList()) {
-                    if (qitem.getId() == qid) {
-                        pagerResults.setQuizId(qitem);
-                        break;
+        final Session ses = hib.openSession();
+        try {
+            ses.beginTransaction();
+            final Query query = ses.getNamedQuery("PagerData.findById");
+            query.setLong("id", Long.parseLong(request.getParameter("dataid")));
+            List data = query.list();
+            if (data.size() == 1) {
+                PagerData pd = (PagerData) data.get(0);
+                pagerResults.setPagerDataId((PagerData) data.get(0));
+                if (request.getParameter("quizid") != null) {
+                    long qid = Long.parseLong(request.getParameter("quizid"));
+                    for (PagerQuizItems qitem : pd.getPagerQuizItemsList()) {
+                        if (qitem.getId() == qid) {
+                            pagerResults.setQuizId(qitem);
+                            break;
+                        }
                     }
                 }
             }
-        }
 
-        ses.save(pagerResults);
-        hib.cs().getTransaction().commit();
+            ses.save(pagerResults);
+            ses.getTransaction().commit();
+        } catch (HibernateException ex) {
+            ses.getTransaction().rollback();
+        } finally {
+            ses.close();
+        }
 
         response.setStatus(HttpServletResponse.SC_OK);
     }

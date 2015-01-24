@@ -12,12 +12,21 @@
                     <hbox width="100%" style="padding: 15px;" pack="center" align="center">
                         <image id="" src="/resources/img/label48.png" width=""  height=""/>
                         <label id="" style="padding: 30px; font-family: 'Times New Roman', Times, serif; font-style: italic; font-size: 300%;" value="QSystem"/>
+                        <hbox pack="center" align="center" style="position: absolute; right: 20; top: 10px; margin:0px 0px 0px 0px; float:right;">
+                            <label value="${c:l('language')}" class="boxlangs" />
+                            <image  src="@load(('/resources/img/flags/').concat(fmodel.lang).concat('.png'))" />
+                            <combobox id="cmbColor" autodrop="true" readonly="true" width="80px" model="@load(fmodel.langs)" onChange="@command('changeLang')" selectedItem="@bind(fmodel.lang)">
+                                <template name="model">
+                                    <comboitem label="@load(each)" image="@load(('/resources/img/flags/').concat(each).concat('.png'))" />
+                                </template>
+                            </combobox>
+                        </hbox>
                     
                     </hbox>
                 </vbox>
             </north>
         
-            <west title="Иерархия филиалов" size="450px" flex="true" minsize="300" maxsize="800" splittable="true" collapsible="true">
+            <west title="${c:l('branches')}" size="450px" flex="true" minsize="300" maxsize="800" splittable="true" collapsible="true">
                 <panel id="treeBranchWindow">
                     <panelchildren>
                         <style>
@@ -31,17 +40,17 @@
                             <center border="none" flex="true">
                                 <tree id="tree" width="100%" height="100%" >
                                     <treecols>
-                                        <treecol label="Филиал"/>
-                                        <treecol label="Описание" width="80px"/>
+                                        <treecol label="${c:l('branch')}"/>
+                                        <treecol label="${c:l('description')}" width="80px"/>
                             
                                     </treecols>
                                 </tree>
                             </center>
                             <south size="50px" border="none" flex="false">
                                 <hbox spacing="10px" style="border: 10px solid white" >
-                                    <button label="Добавить филиал" onClick="@command('addBranch')">
+                                    <button label="${c:l('add_branch')}" onClick="@command('addBranch')">
                                     </button>
-                                    <button label="Удалить филиал"  onClick="@command('removeBranch')">
+                                    <button label="${c:l('remove_branch')}"  onClick="@command('removeBranch')">
                                     
                                     </button>
                                 </hbox>
@@ -51,11 +60,11 @@
                 </panel>
             </west>
         
-            <center title="Статистика"  flex="true">
+            <center title="${c:l('statistics')}"  flex="true">
                 <tabbox  id="tbs" height="100%" width="100%" style="padding: 10px 10px 100px 10px;">
                     <tabs id="tabs">
-                        <tab id="rightNowTab" label="Текущя обстановка" />
-                        <tab id="statisticsTab" label="Статистика" />
+                        <tab id="rightNowTab" label="${c:l('current')}" />
+                        <tab id="statisticsTab" label="${c:l('statistics')}" />
                     </tabs>
                     <tabpanels>
                         <tabpanel style="overflow: auto">
@@ -68,7 +77,7 @@
                                             <timer id="timer" delay="1000" running="true" repeats="true" />
                                         </div>
                                     </div>
-                                    <button style="margin: 10px 0px 5px 5px;" label="Показать текущую ситуацию"
+                                    <button style="margin: 10px 0px 5px 5px;" label="${c:l('show_current')}"
                                             onClick="@command('showBranchSituation')">
                                     </button>
                                 </panelchildren>
@@ -83,15 +92,15 @@
                                 </hlayout>
                             
                                 <vlayout  style="padding: 10px 10px 30px 10px;">
-                                    <chart id="mychart" title="10 самых загруженных услуг на данный момент" width="600" height="400" paneColor="#ffffff" fgAlpha="192"
+                                    <chart id="mychart" title="${c:l('top10bussy')}" width="600" height="400" paneColor="#ffffff" fgAlpha="192"
                                            type="pie" threeD="true" model="@bind(fmodel.pieChart.model)" engine="@bind(fmodel.pieChart.engine)"/>
                                 </vlayout>  
                             
                             
                                 <listbox style="margin: 0px 0px 30px 0px;"  id="services_wait_list" model="@load(fmodel.servicesCustList)" width="" height="300px" onSelect="" vflex="true">
                                     <listhead>
-                                        <listheader label="Услуга" sort="auto"/>
-                                        <listheader label="Очередь" width="70px" sort="auto"/>
+                                        <listheader label="${c:l('service')}" sort="auto"/>
+                                        <listheader label="${c:l('line')}" width="70px" sort="auto"/>
                                     </listhead>
                                     <template name="model" var="pSer">
                                         <listitem>
@@ -105,28 +114,28 @@
                         </tabpanel>
                         <tabpanel style="overflow:auto; background:#FBFFAF;">
                             
-                                <panel id="statPapamPanel"  title="Параметры" border="normal" >
+                                <panel id="statPapamPanel"  title="${c:l('params')}" border="normal" >
                                     <panelchildren style="padding: 10px 10px 10px 10px;">
                                         <div>
-                                            От 
+                                            ${c:l('from_date')}
                                             <datebox id="db1" constraint="no empty, no future: now or never" cols="20" format="long"
                                                      value="@save(fmodel.statVM.start, before={'showBranchStatistic','downloadBranchStatistic'})"
                                                      onChange="GregorianCalendar gc = new GregorianCalendar(); gc.setTime(self.value); gc.set(GregorianCalendar.DAY_OF_YEAR, gc.get(GregorianCalendar.DAY_OF_YEAR) -1); db2.setConstraint(new SimpleDateConstraint( 0, gc.getTime(), new Date(), null));" 
                                                      onCreate="self.value = new Date()"/>
-                                            до 
+                                            ${c:l('to_date')} 
                                             <datebox id="db2" constraint="" cols="20" format="long" 
                                                      value="@save(fmodel.statVM.finish, before={'showBranchStatistic','downloadBranchStatistic'})"
                                                      onCreate="self.value = new Date()"/>
                                             
                                         </div>
                                         <radiogroup id="user_serv" orient="vertical" selectedIndex="@save(fmodel.statVM.regim, before={'showBranchStatistic','downloadBranchStatistic'})" onCheck="">
-                                            <radio id="user_serv1" selected="true" label="В разрезе персонала" radiogroup="user_serv"/>
-                                            <radio id="user_serv2" label="В разрезе услуг" radiogroup="user_serv"/>
+                                            <radio id="user_serv1" selected="true" label="${c:l('in_employee')}" radiogroup="user_serv"/>
+                                            <radio id="user_serv2" label="${c:l('in_service')}" radiogroup="user_serv"/>
                                         </radiogroup>
                                         <div style="border: 10px solid white">
-                                            <button label="Показать" onClick="@command('showBranchStatistic')">
+                                            <button label="${c:l('show')}" onClick="@command('showBranchStatistic')">
                                             </button>
-                                            <button label="Получить всю статистику в формате CSV" onClick="@command('downloadBranchStatistic')" style="margin: 0px 0px 0px 0px; float:right;">
+                                            <button label="${c:l('get_stat_csv')}" onClick="@command('downloadBranchStatistic')" style="margin: 0px 0px 0px 0px; float:right;">
                                             </button>
                                         </div>
                                     </panelchildren>
@@ -137,10 +146,10 @@
                                       model="@bind(fmodel.statVM.statisticModel)">
                                     
                                     <columns  sizable="true">
-                                        <column sort="auto(serviceName)" label="@load( (fmodel.statVM.regim == 0) ? 'Услуга' : 'Оператор')" width="450px"/>
-                                        <column sort="auto(served)" label="Обслужено"  align="center"/> 
-                                        <column sort="auto(removed)" label="Отклонено"  align="center"/>
-                                        <column sort="auto(avgMin)" label="Среднее"  align="center"  />
+                                        <column sort="auto(serviceName)" label="@load( (fmodel.statVM.regim == 0) ? fmodel.l('service') : fmodel.l('employee'))" width="450px"/>
+                                        <column sort="auto(served)" label="${c:l('served')}"  align="center"/> 
+                                        <column sort="auto(removed)" label="${c:l('killed')}"  align="center"/>
+                                        <column sort="auto(avgMin)" label="${c:l('avg')}"  align="center"  />
                                     </columns>
                                     <!-- template for group ->
                                     <template name="model:group">
@@ -178,17 +187,17 @@
                 </tabbox>
 				
             </center>
-            <east title="Информация" size="125px" visible="false"  flex="true" splittable="true" collapsible="true">
+            <east title="${c:l('info')}" size="125px" visible="false"  flex="true" splittable="true" collapsible="true">
 				
             </east>
             <south  size="40px" style="background-image:url(${c:encodeURL('/resources/img/small_vert_grad2.png')}) ">
                 <toolbar mold="panel" align="center">
-                    <toolbarbutton label="Форум" href="http://qsystem.info/index.php/forum/index" target="_blank" />
-                    <toolbarbutton label="Справка" onClick='alert("Справка пока не готова")'/>
-                    <toolbarbutton label="О программе" onClick="@command('about')"/>
+                    <toolbarbutton label="${c:l('forum')}" href="http://qsystem.info/index.php/forum/index" target="_blank" />
+                    <toolbarbutton label="${c:l('man')}" onClick='alert("Not ready")'/>
+                    <toolbarbutton label="${c:l('about')}" onClick="@command('about')"/>
                     <toolbarbutton label="{Apertum}Projects" href="http://apertum.ru" target="_blank" />
                     <toolbarbutton label="QSystem" href="http://qsystem.info" target="_blank" />
-                    <toolbarbutton label="Письмо в поддержку"  href="mailto:info@apertum.ru" target="_blank" />
+                    <toolbarbutton label="${c:l('support')}"  href="mailto:info@apertum.ru" target="_blank" />
                     <separator orient="vertical" bar="true" />
                     {Apertum}Projects Powered by ZK ${desktop.webApp.version} 
                 </toolbar>

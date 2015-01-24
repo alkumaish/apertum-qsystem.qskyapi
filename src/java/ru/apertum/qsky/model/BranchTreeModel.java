@@ -3,9 +3,11 @@ package ru.apertum.qsky.model;
 import java.util.List;
 import javax.naming.NamingException;
 import org.hibernate.Session;
+import org.hibernate.criterion.Order;
 import org.hibernate.criterion.Restrictions;
 import ru.apertum.qsky.controller.branch_tree.BranchTreeNode;
 import ru.apertum.qsky.ejb.IHibernateEJBLocal;
+import ru.apertum.qsky.web.User;
 
 public class BranchTreeModel {
 
@@ -16,26 +18,35 @@ public class BranchTreeModel {
 
     private IHibernateEJBLocal hib;
 
-    public BranchTreeModel() {
+    public BranchTreeModel(User user) {
         try {
             hib = (IHibernateEJBLocal) ((new javax.naming.InitialContext()).lookup("java:comp/env/" + "qskyapi/HibernateEJB"));
         } catch (NamingException ex) {
             throw new RuntimeException("No EJB Hib factory!");
         }
 
-        Session ses = hib.cs();
-        ses.beginTransaction();
-        List<Branch> list = ses.createCriteria(Branch.class).add(Restrictions.isNull("parent")).list();
+        Session ses = hib.openSession();
+        try {
+            ses.beginTransaction();
+            final List<Branch> list;
+            if (user.getBranches().isEmpty()) {
+                list = ses.createCriteria(Branch.class).add(Restrictions.isNull("parent")).addOrder(Order.asc("id")).list();
+            } else {
+                list = ses.createCriteria(Branch.class).add(Restrictions.isNull("parent")).add(Restrictions.in("id", user.getBranches())).addOrder(Order.asc("id")).list();
+            }
 
-        BranchTreeNode[] brs = new BranchTreeNode[list.size()];
+            final BranchTreeNode[] brs = new BranchTreeNode[list.size()];
 
-        for (int i = 0; i < brs.length; i++) {
-            brs[i] = list.get(i).getChildren() != null ? new BranchTreeNode(list.get(i), getChildren(list.get(i))) : new BranchTreeNode(list.get(i));
+            for (int i = 0; i < brs.length; i++) {
+                brs[i] = list.get(i).getChildren() != null ? new BranchTreeNode(list.get(i), getChildren(list.get(i))) : new BranchTreeNode(list.get(i));
 
+            }
+
+            root = new BranchTreeNode(null, brs);
+        } finally {
+            ses.getTransaction().rollback();
+            ses.close();
         }
-
-        root = new BranchTreeNode(null, brs);
-        hib.cs().getTransaction().rollback();
     }
 
     public BranchTreeNode getRoot() {

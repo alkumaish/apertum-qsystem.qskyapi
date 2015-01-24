@@ -5,12 +5,19 @@
             <url>src/java/ru/apertum/qsky/web/Dashboard.java</url>
             <bookmark id="1">
                 <name/>
-                <line>384</line>
+                <line>465</line>
                 <key/>
             </bookmark>
         </file>
     </editor-bookmarks>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
-        <group/>
+        <group>
+            <file>file:/E:/WORK/apertum-qsystem.qskyapi/src/java/ru/apertum/qsky/web/Dashboard.java</file>
+            <file>file:/E:/WORK/apertum-qsystem.qskyapi/src/java/ru/apertum/qsky/web/UserLoginForm.java</file>
+            <file>file:/E:/WORK/apertum-qsystem.qskyapi/src/java/ru/apertum/qsky/servlets/GetPagerData.java</file>
+            <file>file:/E:/WORK/apertum-qsystem.qskyapi/src/java/ru/apertum/qsky/ejb/CustomerEventsEJB.java</file>
+            <file>file:/E:/WORK/apertum-qsystem.qskyapi/src/java/ru/apertum/qsky/servlets/SetPagerData.java</file>
+            <file>file:/E:/WORK/apertum-qsystem.qskyapi/src/java/ru/apertum/qsky/model/BranchTreeModel.java</file>
+        </group>
     </open-files>
 </project-private>

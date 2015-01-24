@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 import javax.ejb.EJB;
 import javax.ejb.Singleton;
+import org.hibernate.HibernateException;
 import org.hibernate.criterion.Property;
 import ru.apertum.qsky.api.ICustomerEvents;
 import ru.apertum.qsky.common.CustomerState;
@@ -125,24 +126,24 @@ public class CustomerEventsEJB implements ICustomerEvents {
     public void standInService(Long branchId, Long serviceId, Long customerId, Integer status, Integer number, String prefix) {
         System.out.println("Start standInService");
         hib.cs().beginTransaction();
-        Customer customer = getCustomer(branchId, customerId);
-        if (customer == null) {
-            customer = new Customer(branchId, customerId);
-        }
-        if (serviceId != null && serviceId > 0) {
-            customer.setServiceId(serviceId);
-        }
-        customer.setNumber(number);
-        customer.setPrefix(prefix);
-        customer.setState(status);
-
-        final Step firstStep = new Step(branchId, customerId);
-        firstStep.setServiceId(serviceId);
-        firstStep.setStandTime(new Date());
-        firstStep.setStartState(status);
-        customer.setFirstStep(firstStep);
-
         try {
+            Customer customer = getCustomer(branchId, customerId);
+            if (customer == null) {
+                customer = new Customer(branchId, customerId);
+            }
+            if (serviceId != null && serviceId > 0) {
+                customer.setServiceId(serviceId);
+            }
+            customer.setNumber(number);
+            customer.setPrefix(prefix);
+            customer.setState(status);
+
+            final Step firstStep = new Step(branchId, customerId);
+            firstStep.setServiceId(serviceId);
+            firstStep.setStandTime(new Date());
+            firstStep.setStartState(status);
+            customer.setFirstStep(firstStep);
+
             hib.cs().saveOrUpdate(firstStep);
             hib.cs().saveOrUpdate(customer);
             hib.cs().getTransaction().commit();
@@ -156,12 +157,13 @@ public class CustomerEventsEJB implements ICustomerEvents {
     public void kickCustomer(Long branchId, Long serviceId, Long customerId, Long employeeId, Integer status) {
         System.out.println("Start kickCustomer");
         hib.cs().beginTransaction();
-        Customer customer = getCustomer(branchId, customerId);
-        if (customer == null) {
-            return;
-        }
-        customer.setState(status);
         try {
+            Customer customer = getCustomer(branchId, customerId);
+            if (customer == null) {
+                return;
+            }
+            customer.setState(status);
+
             if (customer.getFirstStep() != null) {
                 final Step step = customer.getFirstStep().getLastStep();
                 step.setFinishState(status);
@@ -181,13 +183,14 @@ public class CustomerEventsEJB implements ICustomerEvents {
     public void inviteCustomer(Long branchId, Long customerId, Long serviceId, Long employeeId, Integer status) {
         System.out.println("Start inviteCustomer");
         hib.cs().beginTransaction();
-        Customer customer = getCustomer(branchId, customerId);
-        if (customer == null) {
-            return;
-        }
-        customer.setState(status);
-        customer.setEmployeeId(employeeId);
         try {
+            Customer customer = getCustomer(branchId, customerId);
+            if (customer == null) {
+                return;
+            }
+            customer.setState(status);
+            customer.setEmployeeId(employeeId);
+
             hib.cs().saveOrUpdate(customer);
             hib.cs().getTransaction().commit();
         } catch (Exception ex) {
@@ -200,13 +203,13 @@ public class CustomerEventsEJB implements ICustomerEvents {
     public void inviteSecondary(Long branchId, Long customerId, Long serviceId, Long employeeId, Integer status) {
         System.out.println("Start inviteSecondary");
         hib.cs().beginTransaction();
-        Customer customer = getCustomer(branchId, customerId);
-        if (customer == null) {
-            return;
-        }
-        customer.setState(status);
-        customer.setEmployeeId(employeeId);
         try {
+            Customer customer = getCustomer(branchId, customerId);
+            if (customer == null) {
+                return;
+            }
+            customer.setState(status);
+            customer.setEmployeeId(employeeId);
             hib.cs().saveOrUpdate(customer);
             hib.cs().getTransaction().commit();
         } catch (Exception ex) {
@@ -219,25 +222,25 @@ public class CustomerEventsEJB implements ICustomerEvents {
     public void startWorkWithCustomer(Long branchId, Long customerId, Long serviceId, Long employeeId, Integer status) {
         System.out.println("Start startWorkWithCustomer");
         hib.cs().beginTransaction();
-        Customer customer = getCustomer(branchId, customerId);
-        if (customer == null) {
-            System.out.println("ERROR: Customer not found id=" + customerId);
-            return;
-        }
-        if (serviceId != null && serviceId > 0) {
-            customer.setServiceId(serviceId);
-        }
-        customer.setState(status);
-
-        final Step step = customer.getFirstStep().getLastStep();
-        step.setEmployeeId(employeeId);
-        step.setServiceId(serviceId);
-        //step.setStartState(Customer.States.WORK_FIRST);
-        step.setStartTime(new Date());
-        step.setWaiting(step.getStartTime().getTime() - step.getStandTime().getTime());
-        customer.setWaiting((customer.getWaiting() * (customer.getFirstStep().getStepsCount() - 1) + step.getWaiting()) / customer.getFirstStep().getStepsCount());
-
         try {
+            Customer customer = getCustomer(branchId, customerId);
+            if (customer == null) {
+                System.out.println("ERROR: Customer not found id=" + customerId);
+                return;
+            }
+            if (serviceId != null && serviceId > 0) {
+                customer.setServiceId(serviceId);
+            }
+            customer.setState(status);
+
+            final Step step = customer.getFirstStep().getLastStep();
+            step.setEmployeeId(employeeId);
+            step.setServiceId(serviceId);
+            //step.setStartState(Customer.States.WORK_FIRST);
+            step.setStartTime(new Date());
+            step.setWaiting(step.getStartTime().getTime() - step.getStandTime().getTime());
+            customer.setWaiting((customer.getWaiting() * (customer.getFirstStep().getStepsCount() - 1) + step.getWaiting()) / customer.getFirstStep().getStepsCount());
+
             hib.cs().saveOrUpdate(step);
             hib.cs().saveOrUpdate(customer);
             hib.cs().getTransaction().commit();
@@ -251,24 +254,24 @@ public class CustomerEventsEJB implements ICustomerEvents {
     public void startWorkSecondary(Long branchId, Long customerId, Long serviceId, Long employeeId, Integer status) {
         System.out.println("Start startWorkSecondary");
         hib.cs().beginTransaction();
-        Customer customer = getCustomer(branchId, customerId);
-        if (customer == null) {
-            System.out.println("ERROR: Customer not found id=" + customerId);
-            return;
-        }
-        if (serviceId != null && serviceId > 0) {
-            customer.setServiceId(serviceId);
-        }
-        customer.setState(status);
-
-        final Step step = customer.getFirstStep().getLastStep();
-        step.setEmployeeId(employeeId);
-        step.setServiceId(serviceId);
-        step.setStartTime(new Date());
-        step.setWaiting(step.getStartTime().getTime() - step.getStandTime().getTime());
-        customer.setWaiting((customer.getWaiting() * (customer.getFirstStep().getStepsCount() - 1) + step.getWaiting()) / customer.getFirstStep().getStepsCount());
-
         try {
+            Customer customer = getCustomer(branchId, customerId);
+            if (customer == null) {
+                System.out.println("ERROR: Customer not found id=" + customerId);
+                return;
+            }
+            if (serviceId != null && serviceId > 0) {
+                customer.setServiceId(serviceId);
+            }
+            customer.setState(status);
+
+            final Step step = customer.getFirstStep().getLastStep();
+            step.setEmployeeId(employeeId);
+            step.setServiceId(serviceId);
+            step.setStartTime(new Date());
+            step.setWaiting(step.getStartTime().getTime() - step.getStandTime().getTime());
+            customer.setWaiting((customer.getWaiting() * (customer.getFirstStep().getStepsCount() - 1) + step.getWaiting()) / customer.getFirstStep().getStepsCount());
+
             hib.cs().saveOrUpdate(step);
             hib.cs().saveOrUpdate(customer);
             hib.cs().getTransaction().commit();
@@ -282,27 +285,27 @@ public class CustomerEventsEJB implements ICustomerEvents {
     public void customerToPostponed(Long branchId, Long customerId, Long employeeId, Integer status) {
         System.out.println("Start customerToPostponed");
         hib.cs().beginTransaction();
-        Customer customer = getCustomer(branchId, customerId);
-        if (customer == null) {
-            System.out.println("ERROR: Customer not found id=" + customerId);
-            return;
-        }
-        customer.setState(status);
-
-        final Step step = customer.getFirstStep().getLastStep();
-        step.setEmployeeId(employeeId);
-        step.setFinishTime(new Date());
-        step.setFinishState(status);
-        step.setWorking(step.getFinishTime().getTime() - step.getStartTime().getTime());
-        customer.setWorking((customer.getWorking() * (customer.getFirstStep().getStepsCount() - 1) + step.getWorking()) / customer.getFirstStep().getStepsCount());
-
-        final Step postponedStep = new Step(branchId, customerId);
-        postponedStep.setStandTime(new Date());
-        postponedStep.setStartState(status);
-        step.setAfter(postponedStep);
-        postponedStep.setBefore(step);
-
         try {
+            Customer customer = getCustomer(branchId, customerId);
+            if (customer == null) {
+                System.out.println("ERROR: Customer not found id=" + customerId);
+                return;
+            }
+            customer.setState(status);
+
+            final Step step = customer.getFirstStep().getLastStep();
+            step.setEmployeeId(employeeId);
+            step.setFinishTime(new Date());
+            step.setFinishState(status);
+            step.setWorking(step.getFinishTime().getTime() - step.getStartTime().getTime());
+            customer.setWorking((customer.getWorking() * (customer.getFirstStep().getStepsCount() - 1) + step.getWorking()) / customer.getFirstStep().getStepsCount());
+
+            final Step postponedStep = new Step(branchId, customerId);
+            postponedStep.setStandTime(new Date());
+            postponedStep.setStartState(status);
+            step.setAfter(postponedStep);
+            postponedStep.setBefore(step);
+
             hib.cs().saveOrUpdate(postponedStep);
             hib.cs().saveOrUpdate(step);
             hib.cs().saveOrUpdate(customer);
@@ -317,29 +320,29 @@ public class CustomerEventsEJB implements ICustomerEvents {
     public void redirectCustomer(Long branchId, Long customerId, Long employeeId, Long serviceId, Integer status) {
         System.out.println("Start redirectCustomer");
         hib.cs().beginTransaction();
-        Customer customer = getCustomer(branchId, customerId);
-        if (customer == null) {
-            System.out.println("ERROR: Customer not found id=" + customerId);
-            return;
-        }
-        customer.setState(status);
-        customer.setServiceId(serviceId);
-
-        final Step step = customer.getFirstStep().getLastStep();
-        step.setEmployeeId(employeeId);
-        step.setFinishTime(new Date());
-        step.setFinishState(status);
-        step.setWorking(step.getFinishTime().getTime() - step.getStartTime().getTime());
-        customer.setWorking((customer.getWorking() * (customer.getFirstStep().getStepsCount() - 1) + step.getWorking()) / customer.getFirstStep().getStepsCount());
-
-        final Step redirectedStep = new Step(branchId, customerId);
-        redirectedStep.setStandTime(new Date());
-        redirectedStep.setStartState(status);
-        redirectedStep.setServiceId(serviceId);
-        step.setAfter(redirectedStep);
-        redirectedStep.setBefore(step);
-
         try {
+            Customer customer = getCustomer(branchId, customerId);
+            if (customer == null) {
+                System.out.println("ERROR: Customer not found id=" + customerId);
+                return;
+            }
+            customer.setState(status);
+            customer.setServiceId(serviceId);
+
+            final Step step = customer.getFirstStep().getLastStep();
+            step.setEmployeeId(employeeId);
+            step.setFinishTime(new Date());
+            step.setFinishState(status);
+            step.setWorking(step.getFinishTime().getTime() - step.getStartTime().getTime());
+            customer.setWorking((customer.getWorking() * (customer.getFirstStep().getStepsCount() - 1) + step.getWorking()) / customer.getFirstStep().getStepsCount());
+
+            final Step redirectedStep = new Step(branchId, customerId);
+            redirectedStep.setStandTime(new Date());
+            redirectedStep.setStartState(status);
+            redirectedStep.setServiceId(serviceId);
+            step.setAfter(redirectedStep);
+            redirectedStep.setBefore(step);
+
             hib.cs().saveOrUpdate(redirectedStep);
             hib.cs().saveOrUpdate(step);
             hib.cs().saveOrUpdate(customer);
@@ -354,28 +357,28 @@ public class CustomerEventsEJB implements ICustomerEvents {
     public void moveToWaitCustomerAfterPostpone(Long branchId, Long customerId, Long serviceId, Integer status) {
         System.out.println("Start moveToWaitCustomer");
         hib.cs().beginTransaction();
-        Customer customer = getCustomer(branchId, customerId);
-        if (customer == null) {
-            System.out.println("ERROR: Customer not found id=" + customerId);
-            return;
-        }
-        customer.setState(status);
-        customer.setServiceId(serviceId);
-
-        final Step step = customer.getFirstStep().getLastStep();
-        step.setFinishTime(new Date());
-        step.setFinishState(status);
-        step.setWaiting(step.getFinishTime().getTime() - step.getStartTime().getTime());
-        customer.setWaiting((customer.getWaiting() * (customer.getFirstStep().getStepsCount() - 1) + step.getWaiting()) / customer.getFirstStep().getStepsCount());
-
-        final Step waitStep = new Step(branchId, customerId);
-        waitStep.setStandTime(new Date());
-        waitStep.setStartState(status);
-        waitStep.setServiceId(serviceId);
-        step.setAfter(waitStep);
-        waitStep.setBefore(step);
-
         try {
+            Customer customer = getCustomer(branchId, customerId);
+            if (customer == null) {
+                System.out.println("ERROR: Customer not found id=" + customerId);
+                return;
+            }
+            customer.setState(status);
+            customer.setServiceId(serviceId);
+
+            final Step step = customer.getFirstStep().getLastStep();
+            step.setFinishTime(new Date());
+            step.setFinishState(status);
+            step.setWaiting(step.getFinishTime().getTime() - step.getStartTime().getTime());
+            customer.setWaiting((customer.getWaiting() * (customer.getFirstStep().getStepsCount() - 1) + step.getWaiting()) / customer.getFirstStep().getStepsCount());
+
+            final Step waitStep = new Step(branchId, customerId);
+            waitStep.setStandTime(new Date());
+            waitStep.setStartState(status);
+            waitStep.setServiceId(serviceId);
+            step.setAfter(waitStep);
+            waitStep.setBefore(step);
+
             hib.cs().saveOrUpdate(waitStep);
             hib.cs().saveOrUpdate(step);
             hib.cs().saveOrUpdate(customer);
@@ -390,29 +393,29 @@ public class CustomerEventsEJB implements ICustomerEvents {
     public void moveToWaitNextComplexService(Long branchId, Long customerId, Long serviceId, Long employeeId, Integer status) {
         System.out.println("Start moveToWaitNextComplexService");
         hib.cs().beginTransaction();
-        Customer customer = getCustomer(branchId, customerId);
-        if (customer == null) {
-            System.out.println("ERROR: Customer not found id=" + customerId);
-            return;
-        }
-        customer.setState(status);
-        customer.setServiceId(serviceId);
-
-        final Step step = customer.getFirstStep().getLastStep();
-        step.setEmployeeId(employeeId);
-        step.setFinishTime(new Date());
-        step.setFinishState(status);
-        step.setWorking(step.getFinishTime().getTime() - step.getStartTime().getTime());
-        customer.setWorking((customer.getWorking() * (customer.getFirstStep().getStepsCount() - 1) + step.getWorking()) / customer.getFirstStep().getStepsCount());
-
-        final Step nextComplexStep = new Step(branchId, customerId);
-        nextComplexStep.setStandTime(new Date());
-        nextComplexStep.setStartState(status);
-        nextComplexStep.setServiceId(serviceId);
-        step.setAfter(nextComplexStep);
-        nextComplexStep.setBefore(step);
-
         try {
+            Customer customer = getCustomer(branchId, customerId);
+            if (customer == null) {
+                System.out.println("ERROR: Customer not found id=" + customerId);
+                return;
+            }
+            customer.setState(status);
+            customer.setServiceId(serviceId);
+
+            final Step step = customer.getFirstStep().getLastStep();
+            step.setEmployeeId(employeeId);
+            step.setFinishTime(new Date());
+            step.setFinishState(status);
+            step.setWorking(step.getFinishTime().getTime() - step.getStartTime().getTime());
+            customer.setWorking((customer.getWorking() * (customer.getFirstStep().getStepsCount() - 1) + step.getWorking()) / customer.getFirstStep().getStepsCount());
+
+            final Step nextComplexStep = new Step(branchId, customerId);
+            nextComplexStep.setStandTime(new Date());
+            nextComplexStep.setStartState(status);
+            nextComplexStep.setServiceId(serviceId);
+            step.setAfter(nextComplexStep);
+            nextComplexStep.setBefore(step);
+
             hib.cs().saveOrUpdate(nextComplexStep);
             hib.cs().saveOrUpdate(step);
             hib.cs().saveOrUpdate(customer);
@@ -427,29 +430,29 @@ public class CustomerEventsEJB implements ICustomerEvents {
     public void backInService(Long branchId, Long customerId, Long employeeId, Long serviceId, Integer status) {
         System.out.println("Start backInService");
         hib.cs().beginTransaction();
-        Customer customer = getCustomer(branchId, customerId);
-        if (customer == null) {
-            System.out.println("ERROR: Customer not found id=" + customerId);
-            return;
-        }
-        customer.setState(status);
-        customer.setServiceId(serviceId);
-
-        final Step step = customer.getFirstStep().getLastStep();
-        step.setEmployeeId(employeeId);
-        step.setFinishTime(new Date());
-        step.setFinishState(status);
-        step.setWorking(step.getFinishTime().getTime() - step.getStartTime().getTime());
-        customer.setWorking((customer.getWorking() * (customer.getFirstStep().getStepsCount() - 1) + step.getWorking()) / customer.getFirstStep().getStepsCount());
-
-        final Step redirectedStep = new Step(branchId, customerId);
-        redirectedStep.setStandTime(new Date());
-        redirectedStep.setStartState(status);
-        redirectedStep.setServiceId(serviceId);
-        step.setAfter(redirectedStep);
-        redirectedStep.setBefore(step);
-
         try {
+            Customer customer = getCustomer(branchId, customerId);
+            if (customer == null) {
+                System.out.println("ERROR: Customer not found id=" + customerId);
+                return;
+            }
+            customer.setState(status);
+            customer.setServiceId(serviceId);
+
+            final Step step = customer.getFirstStep().getLastStep();
+            step.setEmployeeId(employeeId);
+            step.setFinishTime(new Date());
+            step.setFinishState(status);
+            step.setWorking(step.getFinishTime().getTime() - step.getStartTime().getTime());
+            customer.setWorking((customer.getWorking() * (customer.getFirstStep().getStepsCount() - 1) + step.getWorking()) / customer.getFirstStep().getStepsCount());
+
+            final Step redirectedStep = new Step(branchId, customerId);
+            redirectedStep.setStandTime(new Date());
+            redirectedStep.setStartState(status);
+            redirectedStep.setServiceId(serviceId);
+            step.setAfter(redirectedStep);
+            redirectedStep.setBefore(step);
+
             hib.cs().saveOrUpdate(redirectedStep);
             hib.cs().saveOrUpdate(step);
             hib.cs().saveOrUpdate(customer);
@@ -464,21 +467,21 @@ public class CustomerEventsEJB implements ICustomerEvents {
     public void finishWorkWithCustomer(Long branchId, Long customerId, Long employeeId, Integer status) {
         System.out.println("Start standInService");
         hib.cs().beginTransaction();
-        Customer customer = getCustomer(branchId, customerId);
-        if (customer == null) {
-            System.out.println("ERROR: Customer not found id=" + customerId);
-            return;
-        }
-        customer.setState(status);
-
-        final Step step = customer.getFirstStep().getLastStep();
-        step.setEmployeeId(employeeId);
-        step.setFinishState(status);
-        step.setFinishTime(new Date());
-        step.setWorking(step.getFinishTime().getTime() - step.getStartTime().getTime());
-        customer.setWorking((customer.getWorking() * (customer.getFirstStep().getStepsCount() - 1) + step.getWorking()) / customer.getFirstStep().getStepsCount());
-
         try {
+            Customer customer = getCustomer(branchId, customerId);
+            if (customer == null) {
+                System.out.println("ERROR: Customer not found id=" + customerId);
+                return;
+            }
+            customer.setState(status);
+
+            final Step step = customer.getFirstStep().getLastStep();
+            step.setEmployeeId(employeeId);
+            step.setFinishState(status);
+            step.setFinishTime(new Date());
+            step.setWorking(step.getFinishTime().getTime() - step.getStartTime().getTime());
+            customer.setWorking((customer.getWorking() * (customer.getFirstStep().getStepsCount() - 1) + step.getWorking()) / customer.getFirstStep().getStepsCount());
+
             hib.cs().saveOrUpdate(step);
             hib.cs().saveOrUpdate(customer);
             hib.cs().getTransaction().commit();
@@ -493,25 +496,25 @@ public class CustomerEventsEJB implements ICustomerEvents {
     public synchronized void insertCustomer(Long branchId, Long serviceId, Long customerId, Long beforeCustId, Long afterCustId) {
         System.out.println("Start insertCustomer");
         hib.cs().beginTransaction();
-
-        Customer customer = getCustomer(branchId, customerId);
-        if (customer == null) {
-            customer = new Customer(branchId, customerId);
-            if (serviceId != null && serviceId > 0) {
-                customer.setServiceId(serviceId);
-            }
-        }
-        final Customer before = getCustomer(branchId, beforeCustId);
-        final Customer after = getCustomer(branchId, afterCustId);
-        if (before != null) {
-            before.setAfter(customer);
-            customer.setBefore(before);
-        }
-        if (after != null) {
-            after.setBefore(customer);
-            customer.setAfter(after);
-        }
         try {
+            Customer customer = getCustomer(branchId, customerId);
+            if (customer == null) {
+                customer = new Customer(branchId, customerId);
+                if (serviceId != null && serviceId > 0) {
+                    customer.setServiceId(serviceId);
+                }
+            }
+            final Customer before = getCustomer(branchId, beforeCustId);
+            final Customer after = getCustomer(branchId, afterCustId);
+            if (before != null) {
+                before.setAfter(customer);
+                customer.setBefore(before);
+            }
+            if (after != null) {
+                after.setBefore(customer);
+                customer.setAfter(after);
+            }
+
             hib.cs().saveOrUpdate(customer);
             if (after != null) {
                 hib.cs().saveOrUpdate(after);
@@ -532,20 +535,21 @@ public class CustomerEventsEJB implements ICustomerEvents {
     public synchronized void removeCustomer(Long branchId, Long serviceId, Long customerId) {
         System.out.println("Start removeCustomer");
         hib.cs().beginTransaction();
-
-        final Customer customer = getCustomer(branchId, customerId);
-        if (customer == null) {
-            return;
-        }
-        if (customer.getBefore() != null) {
-            customer.getBefore().setAfter(customer.getAfter());
-        }
-        if (customer.getAfter() != null) {
-            customer.getAfter().setBefore(customer.getBefore());
-        }
-        customer.setAfter(null);
-        customer.setBefore(null);
         try {
+
+            final Customer customer = getCustomer(branchId, customerId);
+            if (customer == null) {
+                return;
+            }
+            if (customer.getBefore() != null) {
+                customer.getBefore().setAfter(customer.getAfter());
+            }
+            if (customer.getAfter() != null) {
+                customer.getAfter().setBefore(customer.getBefore());
+            }
+            customer.setAfter(null);
+            customer.setBefore(null);
+
             if (customer.getBefore() != null) {
                 hib.cs().saveOrUpdate(customer.getBefore());
             }

@@ -9,6 +9,7 @@ import java.awt.Color;
 import org.apache.commons.lang.StringUtils;
 import org.zkoss.bind.annotation.BindingParam;
 import org.zkoss.bind.annotation.GlobalCommand;
+import org.zkoss.util.resource.Labels;
 import org.zkoss.zul.DialModel;
 import org.zkoss.zul.DialModelScale;
 
@@ -48,6 +49,10 @@ public class DialChartVM {
         }
     }
 
+    public static String l(String resName) {
+        return Labels.getLabel(resName);
+    }
+
     private static class ChartData {
 
         public static DialModel createCustomersModel(int value) {
@@ -55,7 +60,7 @@ public class DialChartVM {
             DialModelScale scale = model.newScale(0, 35, 230, -280, 5, 4);
             //scale's configuration data
             scale.setValue(value);
-            scale.setText("Посетители");
+            scale.setText(l("customers"));
             scale.newRange(0, 5, ChartColors.toHtmlColor(Color.getHSBColor(0.55f, 0.8f, 1)), 0.61, 0.603);
             scale.newRange(5, 10, ChartColors.toHtmlColor(Color.getHSBColor(0.3f, 0.8f, 1)), 0.61, 0.603);
             scale.newRange(10, 15, ChartColors.toHtmlColor(Color.getHSBColor(0.18f, 0.8f, 1)), 0.61, 0.603);
@@ -86,7 +91,7 @@ public class DialChartVM {
 
             //scale's configuration data
             scale.setValue(value);
-            scale.setText("Ожидание");
+            scale.setText(l("waiting"));
             scale.newRange(0, 10, ChartColors.toHtmlColor(Color.getHSBColor(0.55f, 0.8f, 1)), 0.91, 0.903);
             scale.newRange(10, 20, ChartColors.toHtmlColor(Color.getHSBColor(0.3f, 0.8f, 1)), 0.91, 0.903);
             scale.newRange(20, 30, ChartColors.toHtmlColor(Color.getHSBColor(0.18f, 0.8f, 1)), 0.91, 0.903);
@@ -114,7 +119,7 @@ public class DialChartVM {
             DialModel model = new DialModel();
             DialModelScale scale = model.newScale(0, 56, 230, -280, 8, 3);
             scale.setTickLabelOffset(0.2);
-            scale.setText("Среднее");
+            scale.setText(l("avg_chart"));
             scale.newRange(0, 8, ChartColors.toHtmlColor(Color.getHSBColor(0.55f, 0.8f, 1)), 0.91, 0.45);
             scale.newRange(8, 16, ChartColors.toHtmlColor(Color.getHSBColor(0.3f, 0.8f, 1)), 0.91, 0.45);
             scale.newRange(16, 24, ChartColors.toHtmlColor(Color.getHSBColor(0.18f, 0.8f, 1)), 0.91, 0.45);
