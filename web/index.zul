@@ -17,10 +17,10 @@
                 <image id="img0" src="resources/img/label48.png" width=""  height=""/>
                 <hbox  style="position: relative; right: 10; top: 0px; margin:0px 0px 0px 0px; float:right;">
                     <label value="${c:l('language')}" class="boxlangs" />
-                    <image  src="@load(('/resources/img/flags/').concat(vm.lang).concat('.png'))" />
-                    <combobox id="cmbColor" autodrop="true" readonly="true" width="80px" model="@load(vm.langs)" onChange="@command('changeLang')" selectedItem="@bind(vm.lang)">
+                    <image  src="@load(('/resources/img/flags/').concat(vm.lang.code).concat('.png'))" />
+                    <combobox id="cmbColor" autodrop="true" readonly="true" width="100px" model="@load(vm.langs)" onChange="@command('changeLang')" selectedItem="@bind(vm.lang)">
                         <template name="model">
-                            <comboitem label="@load(each)" image="@load(('/resources/img/flags/').concat(each).concat('.png'))" />
+                            <comboitem label="@load(each.name)" image="@load(('/resources/img/flags/').concat(each.code).concat('.png'))" />
                         </template>
                     </combobox>
                 </hbox>

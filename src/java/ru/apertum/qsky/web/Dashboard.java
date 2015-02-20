@@ -10,7 +10,6 @@ import java.io.InputStream;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
@@ -59,6 +58,7 @@ import org.zkoss.zul.TreeitemRenderer;
 import org.zkoss.zul.Treerow;
 import org.zkoss.zul.Window;
 import org.zkoss.zul.event.TreeDataEvent;
+import ru.apertum.qsky.common.Multilingual;
 import ru.apertum.qsky.controller.branch_tree.AdvancedTreeModel;
 import ru.apertum.qsky.controller.branch_tree.BranchTreeNode;
 import ru.apertum.qsky.ejb.IHibernateEJBLocal;
@@ -81,27 +81,6 @@ public class Dashboard {
 
     @Init
     public void init() {
-        final org.zkoss.zk.ui.Session sess = Sessions.getCurrent();
-
-        if (sess.getAttribute(org.zkoss.web.Attributes.PREFERRED_LOCALE) == null && Executions.getCurrent().getHeader("accept-language") != null && !Executions.getCurrent().getHeader("accept-language").isEmpty()) {
-            final String ln = Executions.getCurrent().getHeader("accept-language").replace("-", "_").split(",")[0];
-            if (langs.contains(ln)) {
-                lang = ln;
-            } else {
-                lang = "en_GB";
-            }
-            final Locale prefer_locale = lang.length() > 2
-                    ? new Locale(lang.substring(0, 2), lang.substring(3)) : new Locale(lang);
-            sess.setAttribute(org.zkoss.web.Attributes.PREFERRED_LOCALE, prefer_locale);
-        } else {
-            lang = ((Locale) sess.getAttribute(org.zkoss.web.Attributes.PREFERRED_LOCALE)).getLanguage() + "_" + ((Locale) sess.getAttribute(org.zkoss.web.Attributes.PREFERRED_LOCALE)).getCountry();
-            if (!langs.contains(lang)) {
-                lang = "en_GB";
-                final Locale prefer_locale = lang.length() > 2
-                        ? new Locale(lang.substring(0, 2), lang.substring(3)) : new Locale(lang);
-                sess.setAttribute(org.zkoss.web.Attributes.PREFERRED_LOCALE, prefer_locale);
-            }
-        }
 
     }
 
@@ -126,7 +105,7 @@ public class Dashboard {
     @AfterCompose
     public void afterCompose(@ContextParam(ContextType.VIEW) Component view) {
         final org.zkoss.zk.ui.Session sess = Sessions.getCurrent();
-        user = (User) Sessions.getCurrent().getAttribute("USER");
+        user = (User) sess.getAttribute("USER");
 
         Selectors.wireComponents(view, this, false);
         Selectors.wireEventListeners(view, this);
@@ -136,18 +115,17 @@ public class Dashboard {
     //*****************************************************
     //**** Multilingual
     //*****************************************************
-    private static final ArrayList<String> langs = new ArrayList<>(Arrays.asList("ru_RU", "en_GB", "es_ES", "de_DE", "pt_PT", "fr_FR", "it_IT", "cs_CZ", "pl_PL", "sk_SK", "ro_RO", "sr_SP", "uk_UA", "tr_TR", "hi_IN", "ar_EG", "iw_IL", "kk_KZ", "in_ID", "fi_FI"));
-
-    public ArrayList<String> getLangs() {
-        return langs;
+    public ArrayList<Multilingual.Lng> getLangs() {
+        return Multilingual.LANGS;
     }
-    private String lang;
 
-    public String getLang() {
+    private Multilingual.Lng lang = new Multilingual().init();
+
+    public Multilingual.Lng getLang() {
         return lang;
     }
 
-    public void setLang(String lang) {
+    public void setLang(Multilingual.Lng lang) {
         this.lang = lang;
     }
 
@@ -155,8 +133,8 @@ public class Dashboard {
     public void changeLang() {
         if (lang != null) {
             final org.zkoss.zk.ui.Session session = Sessions.getCurrent();
-            final Locale prefer_locale = lang.length() > 2
-                    ? new Locale(lang.substring(0, 2), lang.substring(3)) : new Locale(lang);
+            final Locale prefer_locale = lang.code.length() > 2
+                    ? new Locale(lang.code.substring(0, 2), lang.code.substring(3)) : new Locale(lang.code);
             session.setAttribute(org.zkoss.web.Attributes.PREFERRED_LOCALE, prefer_locale);
             Executions.sendRedirect(null);
         }

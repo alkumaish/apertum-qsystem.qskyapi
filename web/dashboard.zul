@@ -14,10 +14,10 @@
                         <label id="" style="padding: 30px; font-family: 'Times New Roman', Times, serif; font-style: italic; font-size: 300%;" value="QSystem"/>
                         <hbox pack="center" align="center" style="position: absolute; right: 20; top: 10px; margin:0px 0px 0px 0px; float:right;">
                             <label value="${c:l('language')}" class="boxlangs" />
-                            <image  src="@load(('/resources/img/flags/').concat(fmodel.lang).concat('.png'))" />
-                            <combobox id="cmbColor" autodrop="true" readonly="true" width="80px" model="@load(fmodel.langs)" onChange="@command('changeLang')" selectedItem="@bind(fmodel.lang)">
+                            <image  src="@load(('/resources/img/flags/').concat(fmodel.lang.code).concat('.png'))" />
+                            <combobox id="cmbColor" autodrop="true" readonly="true" width="100px" model="@load(fmodel.langs)" onChange="@command('changeLang')" selectedItem="@bind(fmodel.lang)">
                                 <template name="model">
-                                    <comboitem label="@load(each)" image="@load(('/resources/img/flags/').concat(each).concat('.png'))" />
+                                    <comboitem label="@load(each.name)" image="@load(('/resources/img/flags/').concat(each.code).concat('.png'))" />
                                 </template>
                             </combobox>
                         </hbox>
@@ -97,7 +97,7 @@
                                 </vlayout>  
                             
                             
-                                <listbox style="margin: 0px 0px 30px 0px;"  id="services_wait_list" model="@load(fmodel.servicesCustList)" width="" height="300px" onSelect="" vflex="true">
+                                <listbox style="margin: 0px 0px 30px 0px;"  id="services_wait_list" model="@load(fmodel.servicesCustList)" width="" height="500px" onSelect="" vflex="false">
                                     <listhead>
                                         <listheader label="${c:l('service')}" sort="auto"/>
                                         <listheader label="${c:l('line')}" width="70px" sort="auto"/>

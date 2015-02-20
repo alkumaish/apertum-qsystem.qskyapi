@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 import javax.ejb.EJB;
 import javax.ejb.Singleton;
-import org.hibernate.HibernateException;
+import org.hibernate.Session;
 import org.hibernate.criterion.Property;
 import ru.apertum.qsky.api.ICustomerEvents;
 import ru.apertum.qsky.common.CustomerState;
@@ -47,6 +47,7 @@ public class CustomerEventsEJB implements ICustomerEvents {
 
     @Override
     public synchronized void changeCustomerStatus(Long branchId, Long serviceId, Long employeeId, Long customerId, Integer status, Integer number, String prefix) {
+        System.out.println(branchId + "  ser-" + serviceId + "  usr-" + employeeId + "  cust-" + customerId + "  #" + status + "  №" + prefix + number);
 
         if (status >= CustomerState.values().length) {
 
@@ -125,9 +126,10 @@ public class CustomerEventsEJB implements ICustomerEvents {
 
     public void standInService(Long branchId, Long serviceId, Long customerId, Integer status, Integer number, String prefix) {
         System.out.println("Start standInService");
-        hib.cs().beginTransaction();
+        final Session ses = hib.openSession();
         try {
-            Customer customer = getCustomer(branchId, customerId);
+            ses.beginTransaction();
+            Customer customer = getCustomer(ses, branchId, customerId);
             if (customer == null) {
                 customer = new Customer(branchId, customerId);
             }
@@ -144,21 +146,25 @@ public class CustomerEventsEJB implements ICustomerEvents {
             firstStep.setStartState(status);
             customer.setFirstStep(firstStep);
 
-            hib.cs().saveOrUpdate(firstStep);
-            hib.cs().saveOrUpdate(customer);
-            hib.cs().getTransaction().commit();
+            ses.saveOrUpdate(firstStep);
+            ses.saveOrUpdate(customer);
+            ses.getTransaction().commit();
         } catch (Exception ex) {
-            hib.cs().getTransaction().rollback();
+            ses.getTransaction().rollback();
+            System.out.println("ex = " + ex);
+            ex.printStackTrace(System.err);
         } finally {
+            ses.close();
         }
         System.out.println("Finish standInService");
     }
 
     public void kickCustomer(Long branchId, Long serviceId, Long customerId, Long employeeId, Integer status) {
         System.out.println("Start kickCustomer");
-        hib.cs().beginTransaction();
+        final Session ses = hib.openSession();
         try {
-            Customer customer = getCustomer(branchId, customerId);
+            ses.beginTransaction();
+            Customer customer = getCustomer(ses, branchId, customerId);
             if (customer == null) {
                 return;
             }
@@ -169,61 +175,73 @@ public class CustomerEventsEJB implements ICustomerEvents {
                 step.setFinishState(status);
                 step.setFinishTime(new Date());
                 step.setEmployeeId(employeeId);
-                hib.cs().saveOrUpdate(step);
+                ses.saveOrUpdate(step);
             }
-            hib.cs().saveOrUpdate(customer);
-            hib.cs().getTransaction().commit();
+            ses.saveOrUpdate(customer);
+            ses.getTransaction().commit();
         } catch (Exception ex) {
-            hib.cs().getTransaction().rollback();
+            ses.getTransaction().rollback();
+            System.out.println("ex = " + ex);
+            ex.printStackTrace(System.err);
         } finally {
+            ses.close();
         }
         System.out.println("Finish kickCustomer");
     }
 
     public void inviteCustomer(Long branchId, Long customerId, Long serviceId, Long employeeId, Integer status) {
         System.out.println("Start inviteCustomer");
-        hib.cs().beginTransaction();
+        final Session ses = hib.openSession();
         try {
-            Customer customer = getCustomer(branchId, customerId);
+            ses.beginTransaction();
+            Customer customer = getCustomer(ses, branchId, customerId);
             if (customer == null) {
                 return;
             }
             customer.setState(status);
             customer.setEmployeeId(employeeId);
 
-            hib.cs().saveOrUpdate(customer);
-            hib.cs().getTransaction().commit();
+            ses.saveOrUpdate(customer);
+            ses.getTransaction().commit();
         } catch (Exception ex) {
-            hib.cs().getTransaction().rollback();
+            ses.getTransaction().rollback();
+            System.out.println("ex = " + ex);
+            ex.printStackTrace(System.err);
         } finally {
+            ses.close();
         }
         System.out.println("Finish inviteCustomer");
     }
 
     public void inviteSecondary(Long branchId, Long customerId, Long serviceId, Long employeeId, Integer status) {
         System.out.println("Start inviteSecondary");
-        hib.cs().beginTransaction();
+        final Session ses = hib.openSession();
         try {
-            Customer customer = getCustomer(branchId, customerId);
+            ses.beginTransaction();
+            Customer customer = getCustomer(ses, branchId, customerId);
             if (customer == null) {
                 return;
             }
             customer.setState(status);
             customer.setEmployeeId(employeeId);
-            hib.cs().saveOrUpdate(customer);
-            hib.cs().getTransaction().commit();
+            ses.saveOrUpdate(customer);
+            ses.getTransaction().commit();
         } catch (Exception ex) {
-            hib.cs().getTransaction().rollback();
+            ses.getTransaction().rollback();
+            System.out.println("ex = " + ex);
+            ex.printStackTrace(System.err);
         } finally {
+            ses.close();
         }
         System.out.println("Finish inviteSecondary");
     }
 
     public void startWorkWithCustomer(Long branchId, Long customerId, Long serviceId, Long employeeId, Integer status) {
         System.out.println("Start startWorkWithCustomer");
-        hib.cs().beginTransaction();
+        final Session ses = hib.openSession();
         try {
-            Customer customer = getCustomer(branchId, customerId);
+            ses.beginTransaction();
+            Customer customer = getCustomer(ses, branchId, customerId);
             if (customer == null) {
                 System.out.println("ERROR: Customer not found id=" + customerId);
                 return;
@@ -241,21 +259,25 @@ public class CustomerEventsEJB implements ICustomerEvents {
             step.setWaiting(step.getStartTime().getTime() - step.getStandTime().getTime());
             customer.setWaiting((customer.getWaiting() * (customer.getFirstStep().getStepsCount() - 1) + step.getWaiting()) / customer.getFirstStep().getStepsCount());
 
-            hib.cs().saveOrUpdate(step);
-            hib.cs().saveOrUpdate(customer);
-            hib.cs().getTransaction().commit();
+            ses.saveOrUpdate(step);
+            ses.saveOrUpdate(customer);
+            ses.getTransaction().commit();
         } catch (Exception ex) {
-            hib.cs().getTransaction().rollback();
+            ses.getTransaction().rollback();
+            System.out.println("ex = " + ex);
+            ex.printStackTrace(System.err);
         } finally {
+            ses.close();
         }
         System.out.println("Finish startWorkWithCustomer");
     }
 
     public void startWorkSecondary(Long branchId, Long customerId, Long serviceId, Long employeeId, Integer status) {
         System.out.println("Start startWorkSecondary");
-        hib.cs().beginTransaction();
+        final Session ses = hib.openSession();
         try {
-            Customer customer = getCustomer(branchId, customerId);
+            ses.beginTransaction();
+            Customer customer = getCustomer(ses, branchId, customerId);
             if (customer == null) {
                 System.out.println("ERROR: Customer not found id=" + customerId);
                 return;
@@ -272,21 +294,25 @@ public class CustomerEventsEJB implements ICustomerEvents {
             step.setWaiting(step.getStartTime().getTime() - step.getStandTime().getTime());
             customer.setWaiting((customer.getWaiting() * (customer.getFirstStep().getStepsCount() - 1) + step.getWaiting()) / customer.getFirstStep().getStepsCount());
 
-            hib.cs().saveOrUpdate(step);
-            hib.cs().saveOrUpdate(customer);
-            hib.cs().getTransaction().commit();
+            ses.saveOrUpdate(step);
+            ses.saveOrUpdate(customer);
+            ses.getTransaction().commit();
         } catch (Exception ex) {
-            hib.cs().getTransaction().rollback();
+            ses.getTransaction().rollback();
+            System.out.println("ex = " + ex);
+            ex.printStackTrace(System.err);
         } finally {
+            ses.close();
         }
         System.out.println("Finish startWorkSecondary");
     }
 
     public void customerToPostponed(Long branchId, Long customerId, Long employeeId, Integer status) {
         System.out.println("Start customerToPostponed");
-        hib.cs().beginTransaction();
+        final Session ses = hib.openSession();
         try {
-            Customer customer = getCustomer(branchId, customerId);
+            ses.beginTransaction();
+            Customer customer = getCustomer(ses, branchId, customerId);
             if (customer == null) {
                 System.out.println("ERROR: Customer not found id=" + customerId);
                 return;
@@ -306,22 +332,26 @@ public class CustomerEventsEJB implements ICustomerEvents {
             step.setAfter(postponedStep);
             postponedStep.setBefore(step);
 
-            hib.cs().saveOrUpdate(postponedStep);
-            hib.cs().saveOrUpdate(step);
-            hib.cs().saveOrUpdate(customer);
-            hib.cs().getTransaction().commit();
+            ses.saveOrUpdate(postponedStep);
+            ses.saveOrUpdate(step);
+            ses.saveOrUpdate(customer);
+            ses.getTransaction().commit();
         } catch (Exception ex) {
-            hib.cs().getTransaction().rollback();
+            ses.getTransaction().rollback();
+            System.out.println("ex = " + ex);
+            ex.printStackTrace(System.err);
         } finally {
+            ses.close();
         }
         System.out.println("Finish customerToPostponed");
     }
 
     public void redirectCustomer(Long branchId, Long customerId, Long employeeId, Long serviceId, Integer status) {
         System.out.println("Start redirectCustomer");
-        hib.cs().beginTransaction();
+        final Session ses = hib.openSession();
         try {
-            Customer customer = getCustomer(branchId, customerId);
+            ses.beginTransaction();
+            Customer customer = getCustomer(ses, branchId, customerId);
             if (customer == null) {
                 System.out.println("ERROR: Customer not found id=" + customerId);
                 return;
@@ -343,22 +373,26 @@ public class CustomerEventsEJB implements ICustomerEvents {
             step.setAfter(redirectedStep);
             redirectedStep.setBefore(step);
 
-            hib.cs().saveOrUpdate(redirectedStep);
-            hib.cs().saveOrUpdate(step);
-            hib.cs().saveOrUpdate(customer);
-            hib.cs().getTransaction().commit();
+            ses.saveOrUpdate(redirectedStep);
+            ses.saveOrUpdate(step);
+            ses.saveOrUpdate(customer);
+            ses.getTransaction().commit();
         } catch (Exception ex) {
-            hib.cs().getTransaction().rollback();
+            ses.getTransaction().rollback();
+            System.out.println("ex = " + ex);
+            ex.printStackTrace(System.err);
         } finally {
+            ses.close();
         }
         System.out.println("Finish redirectCustomer");
     }
 
     public void moveToWaitCustomerAfterPostpone(Long branchId, Long customerId, Long serviceId, Integer status) {
-        System.out.println("Start moveToWaitCustomer");
-        hib.cs().beginTransaction();
+        System.out.println("Start moveToWaitCustomerAfterPostpone");
+        final Session ses = hib.openSession();
         try {
-            Customer customer = getCustomer(branchId, customerId);
+            ses.beginTransaction();
+            Customer customer = getCustomer(ses, branchId, customerId);
             if (customer == null) {
                 System.out.println("ERROR: Customer not found id=" + customerId);
                 return;
@@ -379,22 +413,26 @@ public class CustomerEventsEJB implements ICustomerEvents {
             step.setAfter(waitStep);
             waitStep.setBefore(step);
 
-            hib.cs().saveOrUpdate(waitStep);
-            hib.cs().saveOrUpdate(step);
-            hib.cs().saveOrUpdate(customer);
-            hib.cs().getTransaction().commit();
+            ses.saveOrUpdate(waitStep);
+            ses.saveOrUpdate(step);
+            ses.saveOrUpdate(customer);
+            ses.getTransaction().commit();
         } catch (Exception ex) {
-            hib.cs().getTransaction().rollback();
+            ses.getTransaction().rollback();
+            System.out.println("ex = " + ex);
+            ex.printStackTrace(System.err);
         } finally {
+            ses.close();
         }
-        System.out.println("Finish moveToWaitCustomer");
+        System.out.println("Finish moveToWaitCustomerAfterPostpone");
     }
 
     public void moveToWaitNextComplexService(Long branchId, Long customerId, Long serviceId, Long employeeId, Integer status) {
         System.out.println("Start moveToWaitNextComplexService");
-        hib.cs().beginTransaction();
+        final Session ses = hib.openSession();
         try {
-            Customer customer = getCustomer(branchId, customerId);
+            ses.beginTransaction();
+            Customer customer = getCustomer(ses, branchId, customerId);
             if (customer == null) {
                 System.out.println("ERROR: Customer not found id=" + customerId);
                 return;
@@ -416,22 +454,26 @@ public class CustomerEventsEJB implements ICustomerEvents {
             step.setAfter(nextComplexStep);
             nextComplexStep.setBefore(step);
 
-            hib.cs().saveOrUpdate(nextComplexStep);
-            hib.cs().saveOrUpdate(step);
-            hib.cs().saveOrUpdate(customer);
-            hib.cs().getTransaction().commit();
+            ses.saveOrUpdate(nextComplexStep);
+            ses.saveOrUpdate(step);
+            ses.saveOrUpdate(customer);
+            ses.getTransaction().commit();
         } catch (Exception ex) {
-            hib.cs().getTransaction().rollback();
+            ses.getTransaction().rollback();
+            System.out.println("ex = " + ex);
+            ex.printStackTrace(System.err);
         } finally {
+            ses.close();
         }
         System.out.println("Finish moveToWaitNextComplexService");
     }
 
     public void backInService(Long branchId, Long customerId, Long employeeId, Long serviceId, Integer status) {
         System.out.println("Start backInService");
-        hib.cs().beginTransaction();
+        final Session ses = hib.openSession();
         try {
-            Customer customer = getCustomer(branchId, customerId);
+            ses.beginTransaction();
+            Customer customer = getCustomer(ses, branchId, customerId);
             if (customer == null) {
                 System.out.println("ERROR: Customer not found id=" + customerId);
                 return;
@@ -453,22 +495,26 @@ public class CustomerEventsEJB implements ICustomerEvents {
             step.setAfter(redirectedStep);
             redirectedStep.setBefore(step);
 
-            hib.cs().saveOrUpdate(redirectedStep);
-            hib.cs().saveOrUpdate(step);
-            hib.cs().saveOrUpdate(customer);
-            hib.cs().getTransaction().commit();
+            ses.saveOrUpdate(redirectedStep);
+            ses.saveOrUpdate(step);
+            ses.saveOrUpdate(customer);
+            ses.getTransaction().commit();
         } catch (Exception ex) {
-            hib.cs().getTransaction().rollback();
+            ses.getTransaction().rollback();
+            System.out.println("ex = " + ex);
+            ex.printStackTrace(System.err);
         } finally {
+            ses.close();
         }
         System.out.println("Finish backInService");
     }
 
     public void finishWorkWithCustomer(Long branchId, Long customerId, Long employeeId, Integer status) {
-        System.out.println("Start standInService");
-        hib.cs().beginTransaction();
+        System.out.println("Start finishWorkWithCustomer");
+        final Session ses = hib.openSession();
         try {
-            Customer customer = getCustomer(branchId, customerId);
+            ses.beginTransaction();
+            Customer customer = getCustomer(ses, branchId, customerId);
             if (customer == null) {
                 System.out.println("ERROR: Customer not found id=" + customerId);
                 return;
@@ -482,30 +528,34 @@ public class CustomerEventsEJB implements ICustomerEvents {
             step.setWorking(step.getFinishTime().getTime() - step.getStartTime().getTime());
             customer.setWorking((customer.getWorking() * (customer.getFirstStep().getStepsCount() - 1) + step.getWorking()) / customer.getFirstStep().getStepsCount());
 
-            hib.cs().saveOrUpdate(step);
-            hib.cs().saveOrUpdate(customer);
-            hib.cs().getTransaction().commit();
+            ses.saveOrUpdate(step);
+            ses.saveOrUpdate(customer);
+            ses.getTransaction().commit();
         } catch (Exception ex) {
-            hib.cs().getTransaction().rollback();
+            ses.getTransaction().rollback();
+            System.out.println("ex = " + ex);
+            ex.printStackTrace(System.err);
         } finally {
+            ses.close();
         }
-        System.out.println("Finish standInService");
+        System.out.println("Finish finishWorkWithCustomer");
     }
 
     @Override
     public synchronized void insertCustomer(Long branchId, Long serviceId, Long customerId, Long beforeCustId, Long afterCustId) {
         System.out.println("Start insertCustomer");
-        hib.cs().beginTransaction();
+        final Session ses = hib.openSession();
         try {
-            Customer customer = getCustomer(branchId, customerId);
+            ses.beginTransaction();
+            Customer customer = getCustomer(ses, branchId, customerId);
             if (customer == null) {
                 customer = new Customer(branchId, customerId);
                 if (serviceId != null && serviceId > 0) {
                     customer.setServiceId(serviceId);
                 }
             }
-            final Customer before = getCustomer(branchId, beforeCustId);
-            final Customer after = getCustomer(branchId, afterCustId);
+            final Customer before = getCustomer(ses, branchId, beforeCustId);
+            final Customer after = getCustomer(ses, branchId, afterCustId);
             if (before != null) {
                 before.setAfter(customer);
                 customer.setBefore(before);
@@ -515,18 +565,20 @@ public class CustomerEventsEJB implements ICustomerEvents {
                 customer.setAfter(after);
             }
 
-            hib.cs().saveOrUpdate(customer);
+            ses.saveOrUpdate(customer);
             if (after != null) {
-                hib.cs().saveOrUpdate(after);
+                ses.saveOrUpdate(after);
             }
             if (before != null) {
-                hib.cs().saveOrUpdate(before);
+                ses.saveOrUpdate(before);
             }
-            hib.cs().getTransaction().commit();
+            ses.getTransaction().commit();
         } catch (Exception ex) {
             System.out.println("ex = " + ex);
-            hib.cs().getTransaction().rollback();
+            ex.printStackTrace(System.err);
+            ses.getTransaction().rollback();
         } finally {
+            ses.close();
         }
         System.out.println("Finish insertCustomer");
     }
@@ -534,10 +586,11 @@ public class CustomerEventsEJB implements ICustomerEvents {
     @Override
     public synchronized void removeCustomer(Long branchId, Long serviceId, Long customerId) {
         System.out.println("Start removeCustomer");
-        hib.cs().beginTransaction();
+        final Session ses = hib.openSession();
         try {
+            ses.beginTransaction();
 
-            final Customer customer = getCustomer(branchId, customerId);
+            final Customer customer = getCustomer(ses, branchId, customerId);
             if (customer == null) {
                 return;
             }
@@ -551,17 +604,19 @@ public class CustomerEventsEJB implements ICustomerEvents {
             customer.setBefore(null);
 
             if (customer.getBefore() != null) {
-                hib.cs().saveOrUpdate(customer.getBefore());
+                ses.saveOrUpdate(customer.getBefore());
             }
             if (customer.getAfter() != null) {
-                hib.cs().saveOrUpdate(customer.getAfter());
+                ses.saveOrUpdate(customer.getAfter());
             }
-            hib.cs().saveOrUpdate(customer);
-            hib.cs().getTransaction().commit();
+            ses.saveOrUpdate(customer);
+            ses.getTransaction().commit();
         } catch (Exception ex) {
             System.out.println("ex = " + ex);
-            hib.cs().getTransaction().rollback();
+            ex.printStackTrace(System.err);
+            ses.getTransaction().rollback();
         } finally {
+            ses.close();
         }
         System.out.println("Finish removeCustomer");
     }
@@ -575,20 +630,23 @@ public class CustomerEventsEJB implements ICustomerEvents {
     public synchronized void sendServiceName(Long branchId, Long serviceId, String name) {
         System.out.println("Invoke sendServiceName " + name);
         dataLock.lock();
+        final Session ses = hib.openSession();
         try {
-            hib.cs().beginTransaction();
-            Service service = getService(branchId, serviceId);
+            ses.beginTransaction();
+            Service service = getService(ses, branchId, serviceId);
             if (service == null) {
                 service = new Service(branchId, serviceId, name);
             }
             service.setName(name);
-            hib.cs().saveOrUpdate(service);
-            hib.cs().getTransaction().commit();
+            ses.saveOrUpdate(service);
+            ses.getTransaction().commit();
         } catch (Exception ex) {
             System.out.println("ex = " + ex);
-            hib.cs().getTransaction().rollback();
+            ex.printStackTrace(System.err);
+            ses.getTransaction().rollback();
         } finally {
             dataLock.unlock();
+            ses.close();
         }
     }
     private static final ReentrantLock dataLock = new ReentrantLock();
@@ -597,41 +655,44 @@ public class CustomerEventsEJB implements ICustomerEvents {
     public synchronized void sendUserName(Long branchId, Long employeeId, String name) {
         System.out.println("Invoke sendUserName " + name);
         dataLock.lock();
+        final Session ses = hib.openSession();
         try {
-            hib.cs().beginTransaction();
-            Employee employee = getEmployee(branchId, employeeId);
+            ses.beginTransaction();
+            Employee employee = getEmployee(ses, branchId, employeeId);
             if (employee == null) {
                 employee = new Employee(branchId, employeeId, name);
             }
             employee.setName(name);
-            hib.cs().saveOrUpdate(employee);
-            hib.cs().getTransaction().commit();
+            ses.saveOrUpdate(employee);
+            ses.getTransaction().commit();
         } catch (Exception ex) {
             System.out.println("ex = " + ex);
-            hib.cs().getTransaction().rollback();
+            ex.printStackTrace(System.err);
+            ses.getTransaction().rollback();
         } finally {
             dataLock.unlock();
+            ses.close();
         }
     }
     //*******************************************************************************************************
 
-    private Customer getCustomer(Long branchId, Long customerId) {
-        final List<Customer> list = hib.cs().createCriteria(Customer.class).add(Property.forName("branchId").eq(branchId)).add(Property.forName("customerId").eq(customerId)).list();
+    private Customer getCustomer(final Session ses, Long branchId, Long customerId) {
+        final List<Customer> list = ses.createCriteria(Customer.class).add(Property.forName("branchId").eq(branchId)).add(Property.forName("customerId").eq(customerId)).list();
         return list.isEmpty() ? null : list.get(0);
     }
 
-    private Employee getEmployee(Long branchId, Long employeeId) {
-        final List<Employee> list = hib.cs().createCriteria(Employee.class).add(Property.forName("branchId").eq(branchId)).add(Property.forName("employeeId").eq(employeeId)).list();
+    private Employee getEmployee(final Session ses, Long branchId, Long employeeId) {
+        final List<Employee> list = ses.createCriteria(Employee.class).add(Property.forName("branchId").eq(branchId)).add(Property.forName("employeeId").eq(employeeId)).list();
         return list.isEmpty() ? null : list.get(0);
     }
 
-    private Service getService(Long branchId, Long serviceId) {
-        final List<Service> list = hib.cs().createCriteria(Service.class).add(Property.forName("branchId").eq(branchId)).add(Property.forName("serviceId").eq(serviceId)).list();
+    private Service getService(final Session ses, Long branchId, Long serviceId) {
+        final List<Service> list = ses.createCriteria(Service.class).add(Property.forName("branchId").eq(branchId)).add(Property.forName("serviceId").eq(serviceId)).list();
         return list.isEmpty() ? null : list.get(0);
     }
 
-    private Branch getBranch(Long branchId) {
-        final List<Branch> list = hib.cs().createCriteria(Branch.class).add(Property.forName("branchId").eq(branchId)).list();
+    private Branch getBranch(final Session ses, Long branchId) {
+        final List<Branch> list = ses.createCriteria(Branch.class).add(Property.forName("branchId").eq(branchId)).list();
         return list.isEmpty() ? null : list.get(0);
     }
 

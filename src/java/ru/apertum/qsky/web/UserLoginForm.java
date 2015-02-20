@@ -1,57 +1,32 @@
 package ru.apertum.qsky.web;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Locale;
 import org.zkoss.bind.annotation.Command;
 import org.zkoss.bind.annotation.Init;
 import org.zkoss.zk.ui.Executions;
 import org.zkoss.zk.ui.Sessions;
+import ru.apertum.qsky.common.Multilingual;
+import ru.apertum.qsky.common.Multilingual.Lng;
 
 public class UserLoginForm {
 
     @Init
     public void init() {
-        final org.zkoss.zk.ui.Session sess = Sessions.getCurrent();
-        if (sess.getAttribute(org.zkoss.web.Attributes.PREFERRED_LOCALE) == null && Executions.getCurrent().getHeader("accept-language") != null && !Executions.getCurrent().getHeader("accept-language").isEmpty()) {
-            final String ln = Executions.getCurrent().getHeader("accept-language").replace("-", "_").split(",")[0];
-            if (langs.contains(ln)) {
-                lang = ln;
-            } else {
-                lang = "en_GB";
-            }
-            final Locale prefer_locale = lang.length() > 2
-                    ? new Locale(lang.substring(0, 2), lang.substring(3)) : new Locale(lang);
-            sess.setAttribute(org.zkoss.web.Attributes.PREFERRED_LOCALE, prefer_locale);
-        } else {
-            lang = sess.getAttribute(org.zkoss.web.Attributes.PREFERRED_LOCALE) == null ? "hz"
-                    : (((Locale) sess.getAttribute(org.zkoss.web.Attributes.PREFERRED_LOCALE)).getLanguage() + "_"
-                    + ((Locale) sess.getAttribute(org.zkoss.web.Attributes.PREFERRED_LOCALE)).getCountry());
-            if (!langs.contains(lang)) {
-                lang = "en_GB";
-                final Locale prefer_locale = lang.length() > 2
-                        ? new Locale(lang.substring(0, 2), lang.substring(3)) : new Locale(lang);
-                sess.setAttribute(org.zkoss.web.Attributes.PREFERRED_LOCALE, prefer_locale);
-            }
-        }
 
     }
 
-    //*****************************************************
-    //**** Multilingual
-    //*****************************************************
-    private static final ArrayList<String> langs = new ArrayList<>(Arrays.asList("ru_RU", "en_GB", "es_ES", "de_DE", "pt_PT", "fr_FR", "it_IT", "cs_CZ", "pl_PL", "sk_SK", "ro_RO", "sr_SP", "uk_UA", "tr_TR", "hi_IN", "ar_EG", "iw_IL", "kk_KZ", "in_ID", "fi_FI"));
-
-    public ArrayList<String> getLangs() {
-        return langs;
+    public ArrayList<Lng> getLangs() {
+        return Multilingual.LANGS;
     }
-    private String lang;
 
-    public String getLang() {
+    private Lng lang = new Multilingual().init();
+
+    public Lng getLang() {
         return lang;
     }
 
-    public void setLang(String lang) {
+    public void setLang(Lng lang) {
         this.lang = lang;
     }
 
@@ -59,8 +34,8 @@ public class UserLoginForm {
     public void changeLang() {
         if (lang != null) {
             final org.zkoss.zk.ui.Session session = Sessions.getCurrent();
-            final Locale prefer_locale = lang.length() > 2
-                    ? new Locale(lang.substring(0, 2), lang.substring(3)) : new Locale(lang);
+            final Locale prefer_locale = lang.code.length() > 2
+                    ? new Locale(lang.code.substring(0, 2), lang.code.substring(3)) : new Locale(lang.code);
             session.setAttribute(org.zkoss.web.Attributes.PREFERRED_LOCALE, prefer_locale);
             Executions.sendRedirect(null);
         }

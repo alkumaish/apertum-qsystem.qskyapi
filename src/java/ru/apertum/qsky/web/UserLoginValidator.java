@@ -1,7 +1,10 @@
 package ru.apertum.qsky.web;
 
+import java.math.BigInteger;
+import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Random;
 import org.zkoss.bind.Property;
 import org.zkoss.bind.ValidationContext;
 import org.zkoss.bind.validator.AbstractValidator;
@@ -14,8 +17,43 @@ public class UserLoginValidator extends AbstractValidator {
     }
 
     static public void main(String[] strs) {
+        long l = 13756273457263l;
+
+        String ls = String.valueOf(l);
+        System.out.println(ls);
+
+        Random rn = new Random();
+        SecureRandom random = new SecureRandom();
+        String res = "";
+        while (!ls.isEmpty()) {
+            
+        
+            int t = rn.nextInt(4) + 1;
+            String ch = t >= ls.length() ? ls : ls.substring(0, t);
+            System.out.println(ch);
+            res = res + new BigInteger(rn.nextInt(50) + 10, random).toString(32).replaceAll("[\\d]", "")+"/"+ new BigInteger(rn.nextInt(50) + 10, random).toString(32).replaceAll("[\\d]", "") + ch;
+            if (t < ls.length()) {
+                ls = ls.substring(t);
+            } else {
+                ls = "";
+            }
+
+        }
+        System.out.println("res="+res);
+        System.out.println("ls="+String.valueOf(l));
+        System.out.println("__="+res.replaceAll("[^\\d]", ""));
+
+        System.out.println(new BigInteger(30, random).toString(32).replaceAll("[\\d]", ""));
+        System.out.println(new BigInteger(60, random).toString(32).replaceAll("[\\d]", ""));
+        System.out.println(new BigInteger(90, random).toString(32).replaceAll("[\\d]", ""));
+        System.out.println(new BigInteger(120, random).toString(32).replaceAll("[\\d]", ""));
+        System.out.println(new BigInteger(150, random).toString(32).replaceAll("[\\d]", ""));
+        System.out.println("asd123&^%&^%&456\\|/789KHG".replaceAll("[^\\d]", ""));
+        if (true) {
+            return;
+        }
         final String usrs = System.getProperty("QSKY_USERS", "admin=admin");
-        System.out.println("users="+usrs);
+        System.out.println("users=" + usrs);
         System.out.println("!");
         String st = "1=11;   2 =  22 , 3  =33 #    4   =44@12345656_25436456.3465563245_r_d3_??;=;kievfriend=kievfriend@3";
         String[] ss = st.toLowerCase().replaceAll("\\s+", "").split(";|,");
